@@ -15,11 +15,12 @@ class DCA:
 		self.previous_buys = {}
 		self.wakeup_event = threading.Event()
 		self.running_dcas = {}
-		sefl.dca_name = name
+		self.dca_name = name
 
 
 	# Manage dcas
 	def manage_dcas(self):
+		print('managing_dcas')
 		self.wakeup_event.wait()
 		print('woken up from wakeup')
 
@@ -27,9 +28,9 @@ class DCA:
 	# Start a dca 
 	def add_dca(self, coin, amount, frequency, start_time=None):
 
-		datetime.now()
+		if start_time is None:
+			next_buy = datetime.now() + timedelta(hours=int(frequency))
 		self.buy(coin, amount)
-
 		
 
 	# Buy the coin
@@ -45,6 +46,7 @@ class DCA:
 	# Stop
 	def stop(self):
 		print('Stopped')
+		exit()
 
 
 	# Save it so it can be resumed
@@ -55,27 +57,28 @@ class DCA:
 	
 	# Thread asking user for their inputs to interact with the system
 	def input_thread(self):
-		user_input = input('start, pnl, new, stop, save')	
+		while 1:
+			user_input = input('start, pnl, new, stop, save\n\n')	
 
-		if user_input == 'new':
-			coin = input('\nChoose coin to buy\n\n')
-			amount = input('\nChoose $Amount ot buy\n\n')
-			frequency = input('\nChoose frequency to buy\n\n')
-			self.add_dca(coin, amount, frequency)
-			
+			if user_input == 'new':
+				coin = input('\nChoose coin to buy\n\n')
+				amount = input('\nChoose $Amount to buy\n\n')
+				frequency = input('\nChoose frequency to buy\n\n')
+				self.add_dca(coin, amount, frequency)
+				
+			elif user_input == 'start':
+				t = threading.Thread(target=self.manage_dcas)
+				t.setDaemon(True)
+				t.start()
 
-		elif user_input == 'stop':
-			self.stop()
-			
 
-		elif user_input == 'save':
-			self.save()
+			elif user_input == 'stop':
+				self.stop()
+				
+
+			elif user_input == 'save':
+				self.save()
 
 dca = DCA()
-
-
-(target=dca.input_thread).start()
-
-
-
+dca.input_thread()
 
