@@ -49,7 +49,7 @@ class DCA:
 
 			self.wakeup_times.sort()
 			if self.wakeup_times[0][0] > datetime.now():
-				sleeptime = (self.wakeup_times[0][0] - datetime.now()).seconds
+				sleeptime = (self.wakeup_times[0][0] - datetime.now()).total_seconds()
 			else:
 				sleeptime = 0.1
 			print('Sleeping for: %ss' % (sleeptime))
