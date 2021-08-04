@@ -18,10 +18,10 @@ class binance_api:
 
 	def buy(self, ticker, buy_volume):
 		mytick = self.exchange.fetch_ticker(ticker)
-		print(mytick['bid'], mytick['ask'])
 		price = self.exchange.fetch_ticker(ticker)['ask']
 		buy_trade = self.exchange.create_order(ticker,'market','buy',buy_volume)
 		self.retrieve_order_fees(buy_trade)
+		return buy_trade
 
 
 	# Get the fees for a trade

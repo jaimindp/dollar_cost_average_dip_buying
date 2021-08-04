@@ -8,7 +8,7 @@ import threading
 # Class to manage a DCA strategy
 class DCA:
 
-	def __init__(self, name='dca_1', simulate=True):
+	def __init__(self, name='dca_1', simulate=True, log=False):
 
 		self.crypto_amounts = {}
 		self.hold_coin = 'USDT'
@@ -20,31 +20,17 @@ class DCA:
 		self.wakeup_times = [] # [[datetime1, coin1], [datetime2, coin2]]
 		self.dca_dict = {}
 		self.start_time = datetime.now()
+		self.log = log
 
 		with open('../keys.json', 'r') as json_file:
 			self.api_keys = json.load(json_file)
 			
 		# Keep a list sorted by datetime objects 
 
-		
-	"""
-	# Sleeping thread which wakes up
-	def sleeping_thread(self):
-
-		# This is put into a cancellable sleep for a certain amount of timek
-
-		# Woken up by another one starting or by the minimum sleep time
-		sleeptime = None 
-		if self.wakeup_time:
-			sleeptime = (self.wakeup_time[0][0] - datetime.now()).seconds
-		self.wakeup_event.wait(timeout=sleeptime)
-	"""
-
 
 	# Manage dcas
 	def manage_dcas(self):
 
-		print('Managing dcas')
 		sleeptime = None
 
 		while 1:
@@ -57,12 +43,15 @@ class DCA:
 			amount = self.dca_dict[coin]['amount']
 			self.buy(coin, amount)	
 
-			self.dca_dict[coin]['next_buy'] = datetime.now() + timedelta(seconds=self.dca_dict[coin]['frequency'])
-			print('Next buy of %s %s' % (, self.dca_dict[coin]['next_buy'].strftime('%b %d %H:%M:%S')))
+			self.dca_dict[coin]['next_buy'] = t + timedelta(seconds=self.dca_dict[coin]['frequency'])
+			print('Next buy of %s %s' % (coin, self.dca_dict[coin]['next_buy'].strftime('%b %d %H:%M:%S')))
 			self.wakeup_times.append([self.dca_dict[coin]['next_buy'], coin])
 
 			self.wakeup_times.sort()
-			sleeptime = (self.wakeup_times[0][0] - datetime.now()).seconds
+			if self.wakeup_times[0][0] > datetime.now():
+				sleeptime = (self.wakeup_times[0][0] - datetime.now()).seconds
+			else:
+				sleeptime = 0.1
 			print('Sleeping for: %ss' % (sleeptime))
 
 
@@ -82,13 +71,13 @@ class DCA:
 
 		api = binance_api(self.api_keys)
 		ticker = '%s/%s' % (coin, self.hold_coin)
-
 		if self.simulate:
-			api.simulate_buy(ticker, amount)
+			trade = api.simulate_buy(ticker, amount)
 		else:
-			api.buy(ticker, amount)
+			trade = api.buy(ticker, amount)
 
-		print('execute_buy')
+		if self.log:
+			self.save_trade(trade, ticker)
 
 
 	# Get DCA report for all coins
@@ -105,9 +94,9 @@ class DCA:
 
 
 	# Save it so it can be resumed
-	def save(self):
-		with open('prev_trades/%s.json' % (), 'a') as json_file:
-			json.dump(self.running_dcas)
+	def save_trade(self, trade, ticker):
+		with open('prev_trades/dca_%s_%s_%s.json' % (datetime.now().strftime('%y_%m_%d-%H_%M_%S'), ticker.split('/')[0], 'sim' if self.simulate else 'live'), 'w') as write_file:
+			json.dump(trade, write_file)
 	
 
 	# Thread asking user for their inputs to interact with the system
@@ -117,34 +106,39 @@ class DCA:
 		t.start()
 
 		while 1:
-			user_input = input('Choose action: new, pnl, stop, save\n\n')	
 
-			if user_input == 'new':
-				coin = input('\nChoose coin to buy\n\n')
-				amount = float(input('\nChoose $Amount to buy\n\n'))
-				frequency = float(input('\nChoose frequency to buy\n\n'))
+			try:
+				user_input = input('\n\nChoose action: new, pnl, stop, save\n\n')	
 
-				frequency_scale = input('\nWeeks/Days/Hours/Minutes/Seconds W/D/H/M/S\n\n')
-				if frequency_scale.lower() == 'w':
-					frequency *= 3600 * 24 * 7
-				elif frequency_scale.lower() == 'd':
-					frequency *= 3600 * 24
-				elif frequency_scale.lower() == 'h':
-					frequency *= 3600
-				elif frequency_scale.lower() == 'm':
-					frequency *= 60
+				if user_input == 'new':
+					coin = input('\nChoose coin to buy\n\n').upper()
+					amount = float(input('\nChoose $Amount to buy\n\n'))
+					frequency = float(input('\nChoose frequency to buy\n\n'))
 
-				self.add_dca(coin, amount, frequency)
-				
-			elif user_input == 'stop':
-				self.stop()
-				
-			elif user_input == 'save':
-				self.save()
+					frequency_scale = input('\nWeeks/Days/Hours/Minutes/Seconds W/D/H/M/S\n\n')
+					if frequency_scale.lower() == 'w':
+						frequency *= 3600 * 24 * 7
+					elif frequency_scale.lower() == 'd':
+						frequency *= 3600 * 24
+					elif frequency_scale.lower() == 'h':
+						frequency *= 3600
+					elif frequency_scale.lower() == 'm':
+						frequency *= 60
 
-			time.sleep(3)
+					self.add_dca(coin, amount, frequency)
+					
+				elif user_input == 'stop':
+					self.stop()
+					
+				elif user_input == 'save':
+					self.save()
 
-dca = DCA('dca_test', simulate=True)
+				time.sleep(3)
+
+			except Exception as e:
+				print('Error in input: %s' % (traceback.format_exc()))
+
+dca = DCA('dca_test', simulate=True, log=True)
 dca.input_thread()
 
 
