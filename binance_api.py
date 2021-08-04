@@ -19,7 +19,7 @@ class binance_api:
 		price = self.exchange.fetch_ticker(ticker)['ask']
 		buy_trade = self.exchange.create_order(ticker,'market','buy',buy_volume/price)
 		self.retrieve_order_fees(buy_trade)
-		print('Bought: %.6f %s at $%.8f' % (buy_trade['cost'], ticker.split('/')[0], buy_trade['price']))
+		print('Bought: %.6f %s at $%.8f' % (buy_trade['cost'], ticker.split('/')[1], buy_trade['price']))
 
 		return buy_trade
 

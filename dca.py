@@ -62,7 +62,8 @@ class DCA:
 			print('%s already executing' % (coin))
 		else:
 			self.dca_dict[coin] = {'amount':amount, 'frequency':frequency, 'next_buy':start_time}
-			self.wakeup_times.append([start_time+timedelta(seconds=frequency), coin])
+			self.wakeup_times.append([start_time, coin])
+			self.wakeup_times.sort()
 			self.wakeup_event.set()
 		
 
