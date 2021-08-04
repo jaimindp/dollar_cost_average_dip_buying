@@ -89,8 +89,6 @@ class DCA:
 	# Stop
 	def stop(self):
 		print('Stopped but can be resumed again')
-		self.save()
-		exit()
 
 
 	# Save it so it can be resumed
@@ -133,16 +131,22 @@ class DCA:
 				elif user_input == 'save':
 					self.save()
 
-				time.sleep(3)
+				time.sleep(2)
 
 			except Exception as e:
 				print('Error in input: %s' % (traceback.format_exc()))
+				exit()
 
 log, simulate = False, False
 if '-l' in sys.argv:
 	log = True
+	print('logging')
 if '-s' in sys.argv:
 	simulate = True
+	print('simulating')
+else:
+	print('live trading')
+
 
 dca = DCA('dca_test', simulate=simulate, log=log)
 dca.input_thread()

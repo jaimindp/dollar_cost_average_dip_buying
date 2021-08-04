@@ -15,12 +15,12 @@ class binance_api:
 		self.exchange = ccxt.binance({'apiKey':self.api_keys['api_key'], 'secret':self.api_keys['secret_key']})
 
 
-
 	def buy(self, ticker, buy_volume):
-		mytick = self.exchange.fetch_ticker(ticker)
 		price = self.exchange.fetch_ticker(ticker)['ask']
-		buy_trade = self.exchange.create_order(ticker,'market','buy',buy_volume)
+		#print('Buying: %.6s %s' % (buy_volume/price, ticker.split('/')[0]))
+		buy_trade = self.exchange.create_order(ticker,'market','buy',buy_volume/price)
 		self.retrieve_order_fees(buy_trade)
+
 		return buy_trade
 
 
@@ -67,7 +67,7 @@ class binance_api:
 
 		trade_price = self.exchange.fetch_ticker(ticker)['ask']
 
-		print('\n{} at {:.8f} {} = ${:.6f}'.format(buy_volume, trade_price, ticker, trade_price))
+		print('\n{} at {:.8f} {} = {:.6f}{}'.format(buy_volume, trade_price, ticker, buy_volume/trade_price, ticker.split('/')[0]))
 		trade = {'symbol':ticker ,'side':'buy', 'amount':buy_volume, 'cost':trade_price * buy_volume}
 		
 		return trade
