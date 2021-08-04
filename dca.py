@@ -138,7 +138,13 @@ class DCA:
 			except Exception as e:
 				print('Error in input: %s' % (traceback.format_exc()))
 
-dca = DCA('dca_test', simulate=True, log=True)
+log, simulate = False, False
+if '-l' in sys.argv:
+	log = True
+if '-s' in sys.argv:
+	simulate = True
+
+dca = DCA('dca_test', simulate=simulate, log=log)
 dca.input_thread()
 
 
