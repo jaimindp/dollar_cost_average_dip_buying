@@ -43,7 +43,7 @@ class DCA:
 			amount = self.dca_dict[coin]['amount']
 			self.buy(coin, amount)	
 
-			self.dca_dict[coin]['next_buy'] = t + timedelta(seconds=self.dca_dict[coin]['frequency'])
+			self.dca_dict[coin]['next_buy'] = datetime.now() + timedelta(seconds=self.dca_dict[coin]['frequency'])
 			print('Next buy of %s %s' % (coin, self.dca_dict[coin]['next_buy'].strftime('%b %d %H:%M:%S')))
 			self.wakeup_times.append([self.dca_dict[coin]['next_buy'], coin])
 
@@ -56,7 +56,7 @@ class DCA:
 
 
 	# Start a dca 
-	def add_dca(self, coin, amount, frequency, start_time=datetime.now()):
+	def add_dca(self, coin, amount, frequency, start_time):
 
 		if coin in self.dca_dict:
 			print('%s already executing' % (coin))
@@ -123,7 +123,7 @@ class DCA:
 					elif frequency_scale.lower() == 'm':
 						frequency *= 60
 
-					self.add_dca(coin, amount, frequency)
+					self.add_dca(coin, amount, frequency, datetime.now())
 					
 				elif user_input == 'stop':
 					self.stop()
