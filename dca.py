@@ -19,6 +19,7 @@ class DCA:
 		self.simulate = simulate
 		self.wakeup_times = [] # [[datetime1, coin1], [datetime2, coin2]]
 		self.dca_dict = {}
+		self.start_time = datetime.now()
 
 		with open('../keys.json', 'r') as json_file:
 			self.api_keys = json.load(json_file)
@@ -38,34 +39,31 @@ class DCA:
 			sleeptime = (self.wakeup_time[0][0] - datetime.now()).seconds
 		self.wakeup_event.wait(timeout=sleeptime)
 	"""
-		
+
 
 	# Manage dcas
 	def manage_dcas(self):
 
 		print('Managing dcas')
 		sleeptime = None
+
 		while 1:
 
 			self.wakeup_event.clear()
 			self.wakeup_event.wait(timeout=None if not sleeptime else max(0, sleeptime))
-			print('Popped from wakeup')
 			t, coin = self.wakeup_times.pop(0)
 
-			print('Woken up from wakeup')
+			print('Woken up from sleep')
 			amount = self.dca_dict[coin]['amount']
 			self.buy(coin, amount)	
 
 			self.dca_dict[coin]['next_buy'] = datetime.now() + timedelta(seconds=self.dca_dict[coin]['frequency'])
-			print(self.dca_dict[coin]['next_buy'].strftime('%b %d %H:%M:%S'))
+			print('Next buy of %s %s' % (, self.dca_dict[coin]['next_buy'].strftime('%b %d %H:%M:%S')))
 			self.wakeup_times.append([self.dca_dict[coin]['next_buy'], coin])
-			print(self.wakeup_times)
 
 			self.wakeup_times.sort()
-
 			sleeptime = (self.wakeup_times[0][0] - datetime.now()).seconds
-
-			print(sleeptime)
+			print('Sleeping for: %ss' % (sleeptime))
 
 
 	# Start a dca 
@@ -75,7 +73,7 @@ class DCA:
 			print('%s already executing' % (coin))
 		else:
 			self.dca_dict[coin] = {'amount':amount, 'frequency':frequency, 'next_buy':start_time}
-			self.wakeup_times.append([start_time, coin])
+			self.wakeup_times.append([start_time+timedelta(seconds=frequency), coin])
 			self.wakeup_event.set()
 		
 
@@ -105,9 +103,10 @@ class DCA:
 		self.save()
 		exit()
 
+
 	# Save it so it can be resumed
 	def save(self):
-		with open('%s.json', 'a') as json_file:
+		with open('prev_trades/%s.json' % (), 'a') as json_file:
 			json.dump(self.running_dcas)
 	
 
@@ -116,29 +115,34 @@ class DCA:
 		t = threading.Thread(target=self.manage_dcas)
 		t.setDaemon(True)
 		t.start()
+
 		while 1:
-			user_input = input('new, pnl, stop, save\n\n')	
+			user_input = input('Choose action: new, pnl, stop, save\n\n')	
 
 			if user_input == 'new':
 				coin = input('\nChoose coin to buy\n\n')
 				amount = float(input('\nChoose $Amount to buy\n\n'))
 				frequency = float(input('\nChoose frequency to buy\n\n'))
 
-				frequency_scale = input('\nHours/Minutes/Seconds H/M/S\n\n')
-				if frequency_scale.lower() == 'h':
+				frequency_scale = input('\nWeeks/Days/Hours/Minutes/Seconds W/D/H/M/S\n\n')
+				if frequency_scale.lower() == 'w':
+					frequency *= 3600 * 24 * 7
+				elif frequency_scale.lower() == 'd':
+					frequency *= 3600 * 24
+				elif frequency_scale.lower() == 'h':
 					frequency *= 3600
 				elif frequency_scale.lower() == 'm':
 					frequency *= 60
-				print (frequency)
-				#buy_time = input('\nSet buy time?\n\n')
-				self.add_dca(coin, amount, frequency)
 
+				self.add_dca(coin, amount, frequency)
 				
 			elif user_input == 'stop':
 				self.stop()
 				
 			elif user_input == 'save':
 				self.save()
+
+			time.sleep(3)
 
 dca = DCA('dca_test', simulate=True)
 dca.input_thread()
