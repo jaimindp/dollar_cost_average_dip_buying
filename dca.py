@@ -68,8 +68,6 @@ class DCA:
 			print(sleeptime)
 
 
-				
-
 	# Start a dca 
 	def add_dca(self, coin, amount, frequency, start_time=datetime.now()):
 
@@ -100,19 +98,19 @@ class DCA:
 		for k,v in self.running_dcas.items():
 			print(k,v)
 
+
 	# Stop
 	def stop(self):
 		print('Stopped but can be resumed again')
 		self.save()
 		exit()
 
-
 	# Save it so it can be resumed
 	def save(self):
 		with open('%s.json', 'a') as json_file:
 			json.dump(self.running_dcas)
-
 	
+
 	# Thread asking user for their inputs to interact with the system
 	def input_thread(self):
 		t = threading.Thread(target=self.manage_dcas)
@@ -144,4 +142,6 @@ class DCA:
 
 dca = DCA('dca_test', simulate=True)
 dca.input_thread()
+
+
 
