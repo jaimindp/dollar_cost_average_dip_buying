@@ -26,6 +26,7 @@ class DCA:
 			self.api_keys = json.load(json_file)
 			
 		# Keep a list sorted by datetime objects 
+		
 
 
 	# Manage dcas
@@ -35,24 +36,28 @@ class DCA:
 
 		while 1:
 
-			self.wakeup_event.clear()
-			self.wakeup_event.wait(timeout=None if not sleeptime else max(0, sleeptime))
-			t, coin = self.wakeup_times.pop(0)
+			try:
+				self.wakeup_event.clear()
+				self.wakeup_event.wait(timeout=None if not sleeptime else max(0, sleeptime))
+				t, coin = self.wakeup_times.pop(0)
 
-			print('Woken up from sleep')
-			amount = self.dca_dict[coin]['amount']
-			self.buy(coin, amount)	
+				print('Woken up from sleep')
+				amount = self.dca_dict[coin]['amount']
+				self.buy(coin, amount)	
 
-			self.dca_dict[coin]['next_buy'] = datetime.now() + timedelta(seconds=self.dca_dict[coin]['frequency'])
-			print('Next buy of %s %s' % (coin, self.dca_dict[coin]['next_buy'].strftime('%b %d %H:%M:%S')))
-			self.wakeup_times.append([self.dca_dict[coin]['next_buy'], coin])
+				self.dca_dict[coin]['next_buy'] = datetime.now() + timedelta(seconds=self.dca_dict[coin]['frequency'])
+				print('Next buy of %s %s' % (coin, self.dca_dict[coin]['next_buy'].strftime('%b %d %H:%M:%S')))
+				self.wakeup_times.append([self.dca_dict[coin]['next_buy'], coin])
 
-			self.wakeup_times.sort()
-			if self.wakeup_times[0][0] > datetime.now():
-				sleeptime = (self.wakeup_times[0][0] - datetime.now()).total_seconds()
-			else:
-				sleeptime = 0.1
-			print('Sleeping for: %ss' % (sleeptime))
+				self.wakeup_times.sort()
+				if self.wakeup_times[0][0] > datetime.now():
+					sleeptime = (self.wakeup_times[0][0] - datetime.now()).total_seconds()
+				else:
+					sleeptime = 0.1
+				print('Sleeping for: %ss' % (sleeptime))
+			
+			except Exception as e:
+				print('Error %s' %(traceback.format_exc()))
 
 
 	# Start a dca 
