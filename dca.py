@@ -1,5 +1,6 @@
 import json
 import traceback
+import requests
 from binance_api import *
 from datetime import datetime, timedelta
 import threading
@@ -86,9 +87,11 @@ class DCA:
 			self.save_trade(trade, ticker)
 
 
-	# Pull 
-	def fear_greed():
-		
+	# Pull fear and greed index to invest an increasing amount according to it
+	def fear_greed(self):
+		endpoint = 'https://api.alternative.me/fng/?format=json&date_format=uk'
+		fg_dict = requests.get(endpoint).json()		
+
 
 	# Get DCA report for all coins
 	def report(self):
