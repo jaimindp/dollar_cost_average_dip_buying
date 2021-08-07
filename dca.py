@@ -86,6 +86,10 @@ class DCA:
 			self.save_trade(trade, ticker)
 
 
+	# Pull 
+	def fear_greed():
+		
+
 	# Get DCA report for all coins
 	def report(self):
 		for k,v in self.running_dcas.items():
