@@ -1,6 +1,6 @@
 # Dollar Cost Averaging - Custom parameter DCA (Work in Progress)
 
-Dollar Cost Averaging: Dividing the total amount of money to be invested periodically over time to reduce the impact of volatility in your average buy price. If you think investing in crypto is risky, it's a good risk averse way to get exposed to the market especially in volatile times
+Dollar Cost Averaging: Dividing the total amount of money to be invested periodically over time to reduce the impact of volatility on the average buy price. If you think investing in crypto is risky, it's a good risk averse way to get exposed to the market especially in volatile times (Always)
 
 This repository WILL let you run, backtest and speculatively forward-test Dollar Cost Averaging strategies for crypto so you can customise your DCA minimising risk, while maximising profits in a way which suits you
 
