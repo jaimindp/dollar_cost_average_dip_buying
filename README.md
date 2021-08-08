@@ -1,10 +1,12 @@
-# Dollar Cost Averaging (Work in progress)
+# Dollar Cost Averaging - Fancier DCA (Work in Progress)
 
-A Program which lets you test Dollar Cost Averaging strategies for crypto
+Dollar Cost Averaging: Dividing the total amount of money to be invested periodically over time to reduce the impact of volatility in your average buy price.
 
-Places market orders in the spot market getting the current price then sleeps until the next buy interval. It is designed to be save progress so it does not have to be continutously run on the same machine. Different Dollar cost averaging strategies will be put in as we go!
+This repository lets you run, backtest and speculatively forward-test Dollar Cost Averaging strategies for crypto so you can customise your minimising, while maximising profits in a way which suits you
 
-Strategies Being tested:
-- Proportional to Fear and Greed Index
+Places market orders in the spot market getting the current price then sleeps until the next buy interval. It is designed to be save progress so it does not have to be continutously run on the same machine. Different DCA strategies will be put in as we go!
+
+Strategies tested and planning to be tested:
+- According to the Crypto Fear and Greed Index https://alternative.me/crypto/fear-and-greed-index (Buys more when fear is higher, buys less when greed is higher)
 - RSI based DCA
 

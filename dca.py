@@ -4,6 +4,7 @@ import requests
 from binance_api import *
 from datetime import datetime, timedelta
 import threading
+import numpy as np
 
 
 # Class to manage a DCA strategy
@@ -27,7 +28,6 @@ class DCA:
 			self.api_keys = json.load(json_file)
 			
 		# Keep a list sorted by datetime objects 
-		
 
 
 	# Manage dcas
@@ -89,8 +89,16 @@ class DCA:
 
 	# Pull fear and greed index to invest an increasing amount according to it
 	def fear_greed(self):
-		endpoint = 'https://api.alternative.me/fng/?format=json&date_format=uk'
-		fg_dict = requests.get(endpoint).json()		
+		# Get the fear and greed index from 0-100 with a mean of approximately 50
+		# More fear == Better time to buy so buy more, more greed, worse time to buy so buy less
+		# Essentially a way to increase averaging in over dips
+		# Based around sentiment, RSI and other factors
+		# Returns a number between 0 and 2 to scale the buy amount buy 
+
+		fg_dict = requests.get('https://api.alternative.me/fng/?format=json&date_format=uk').json()		
+		fear_greed_value = fg_dict['data'][0]['value']
+
+		return -2/(1+np.exp(-0.17*(x-50)))+2 # Steep transformation of logistic curve for weighting function
 
 
 	# Get DCA report for all coins
@@ -150,6 +158,7 @@ class DCA:
 				print('Error in input: %s' % (traceback.format_exc()))
 				exit()
 
+
 log, simulate = False, False
 if '-l' in sys.argv:
 	log = True
@@ -163,6 +172,5 @@ else:
 
 dca = DCA('dca_test', simulate=simulate, log=log)
 dca.input_thread()
-
 
 
