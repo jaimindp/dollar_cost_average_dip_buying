@@ -20,9 +20,11 @@ class DCA:
 		self.dca_name = name
 		self.simulate = simulate
 		self.wakeup_times = [] # [[datetime1, coin1], [datetime2, coin2]]
+		self.strategies = {'r':lambda x : x, 'f':self.fear_greed}
 		self.dca_dict = {}
 		self.start_time = datetime.now()
 		self.log = log
+		self.fg_pull = None
 
 		with open('../keys.json', 'r') as json_file:
 			self.api_keys = json.load(json_file)
@@ -36,14 +38,14 @@ class DCA:
 		sleeptime = None
 
 		while 1:
-
 			try:
 				self.wakeup_event.clear()
 				self.wakeup_event.wait(timeout=None if not sleeptime else max(0, sleeptime))
 				t, coin = self.wakeup_times.pop(0)
 
 				print('Woken up from sleep')
-				amount = self.dca_dict[coin]['amount']
+				amount = self.dca_dict[coin]['function'](self.dca_dict[coin]['amount'])
+				print('Amount to buy %.2f' % (amount))
 				self.buy(coin, amount)	
 
 				self.dca_dict[coin]['next_buy'] = datetime.now() + timedelta(seconds=self.dca_dict[coin]['frequency'])
@@ -55,6 +57,7 @@ class DCA:
 					sleeptime = (self.wakeup_times[0][0] - datetime.now()).total_seconds()
 				else:
 					sleeptime = 0.1
+
 				print('Sleeping for: %ss' % (sleeptime))
 			
 			except Exception as e:
@@ -62,12 +65,13 @@ class DCA:
 
 
 	# Start a dca 
-	def add_dca(self, coin, amount, frequency, start_time):
+	def add_dca(self, coin, amount, frequency, start_time, strategy):
 
 		if coin in self.dca_dict:
 			print('%s already executing' % (coin))
 		else:
-			self.dca_dict[coin] = {'amount':amount, 'frequency':frequency, 'next_buy':start_time}
+			
+			self.dca_dict[coin] = {'amount':amount, 'frequency':frequency, 'next_buy':start_time, 'function':self.strategies[strategy]}
 			self.wakeup_times.append([start_time, coin])
 			self.wakeup_times.sort()
 			self.wakeup_event.set()
@@ -88,17 +92,24 @@ class DCA:
 
 
 	# Pull fear and greed index to invest an increasing amount according to it
-	def fear_greed(self):
+	def fear_greed(self, amount):
 		# Get the fear and greed index from 0-100 with a mean of approximately 50
 		# More fear == Better time to buy so buy more, more greed, worse time to buy so buy less
 		# Essentially a way to increase averaging in over dips
 		# Based around sentiment, RSI and other factors
 		# Returns a number between 0 and 2 to scale the buy amount buy 
 
-		fg_dict = requests.get('https://api.alternative.me/fng/?format=json&date_format=uk').json()		
-		fear_greed_value = fg_dict['data'][0]['value']
-
-		return -2/(1+np.exp(-0.17*(x-50)))+2 # Steep transformation of logistic curve for weighting function
+		# Check when it was last pulled
+		now = datetime.now()
+		if self.fg_pull is None or (self.fg_pull.date() < now.date() and now.hour >= 1) or (self.fg_pull.date() == now.date() and self.fg_pull.hour < 1 and now.hour >= 1):
+			fg_dict = requests.get('https://api.alternative.me/fng/?format=json&date_format=uk').json()		
+			self.fear_greed_value = int(fg_dict['data'][0]['value'])
+			self.fg_pull = datetime.now()
+			print('Just pulled new fear and greed index: %d' % (self.fear_greed_value))
+		
+		fg_weight = -2/(1+np.exp(-0.17*(self.fear_greed_value-50)))+2 # Steep transformation of logistic curve for weighting function
+		print('Multiplier: %.4f' % (fg_weight))
+		return fg_weight * amount 
 
 
 	# Get DCA report for all coins
@@ -144,7 +155,9 @@ class DCA:
 					elif frequency_scale.lower() == 'm':
 						frequency *= 60
 
-					self.add_dca(coin, amount, frequency, datetime.now())
+					strategy = input('\nStrategy: Regular/Fear & Greed r/f\n\n')
+
+					self.add_dca(coin, amount, frequency, datetime.now(), strategy)
 					
 				elif user_input == 'stop':
 					self.stop()
@@ -165,9 +178,9 @@ if '-l' in sys.argv:
 	print('logging')
 if '-s' in sys.argv:
 	simulate = True
-	print('simulating')
+	print('\n\nSIMULATING')
 else:
-	print('live trading')
+	print('\n\nLIVE TRADING')
 
 
 dca = DCA('dca_test', simulate=simulate, log=log)
