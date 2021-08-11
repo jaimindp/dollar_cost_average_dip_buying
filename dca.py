@@ -92,6 +92,7 @@ class DCA:
 
 
 	# Pull fear and greed index to invest an increasing amount according to it
+	# Danger of min buy amounts being lower than executable on exchange (how to combat?)
 	def fear_greed(self, amount):
 		# Get the fear and greed index from 0-100 with a mean of approximately 50
 		# More fear == Better time to buy so buy more, more greed, worse time to buy so buy less
