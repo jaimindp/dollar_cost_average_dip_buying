@@ -137,7 +137,6 @@ class DCA:
 		t.start()
 
 		while 1:
-
 			try:
 				user_input = input('\n\nChoose action: new, pnl, stop, save\n\n')	
 
