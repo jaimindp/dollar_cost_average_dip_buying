@@ -1,7 +1,8 @@
 import json
 import traceback
 import requests
-from binance_api import *
+# from binance_api import *
+from ftx_api import *
 from datetime import datetime, timedelta
 import threading
 import numpy as np
@@ -80,7 +81,8 @@ class DCA:
 	# Buy the coin
 	def buy(self, coin, amount):
 
-		api = binance_api(self.api_keys)
+		# api = binance_api(self.api_keys)
+		api = ftx_api(self.api_keys)
 		ticker = '%s/%s' % (coin, self.hold_coin)
 		if self.simulate:
 			trade = api.simulate_buy(ticker, amount)

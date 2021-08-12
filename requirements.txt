@@ -1,3 +1,4 @@
 ccxt
 cryptography
 tzlocal
+numpy
