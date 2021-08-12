@@ -12,6 +12,10 @@ Strategies tested and planning to be tested:
 - Volatility Based DCA
 
 ### Updates
+August 12th:
+Fear and greed DCA handling for buy amounts lower than the minimum buy amount for each coin
+
 August 8th:
 Basic DCA works for all cryptos on Binance, needs to be run permanently 
+
 

@@ -14,25 +14,32 @@ class binance_api:
 	def __init__(self, api_keys):
 		self.api_keys = {'api_key':api_keys['binance_keys']['api_key'],'secret_key':api_keys['binance_keys']['secret_key']}
 		self.exchange = ccxt.binance({'apiKey':self.api_keys['api_key'], 'secret':self.api_keys['secret_key']})
-		self.markets = self.exchange.fetch_markets()
+		self.markets = {}
+		self.get_markets()
 
+
+	# Get markets
+	def get_markets(self):
+
+		for market in self.exchange.fetch_markets():
+			self.markets[market['symbol']] = market 
 
 	# Buy 
 	def buy(self, ticker, buy_volume):
 
 		price = self.exchange.fetch_ticker(ticker)['ask']
 		buy_volume /= price
-		step_size = 10**(-self.market[ticker]['precision']['amount'])
+		step_size = 10**(-self.markets[ticker]['precision']['amount'])
 		buy_volume = round(buy_volume*1/step_size) * step_size
-		min_buy_amount = float(self.market[ticker]['limits']['amount']['min'])
+		min_buy_amount = float(self.markets[ticker]['limits']['amount']['min'])
 
 		# Check if the buy volume is the minimum amount for this exchange
 		if buy_volume < min_buy_amount:
-			print('Buy amount %.6f lower than the mininmum trade amount for %s' % (buy_volume, ticker))
-			if buy_volume < 0.75 min_buy_amount:
+			if buy_volume < 0.75*min_buy_amount:
+				print('Buy amount %.6f lower than the mininmum trade amount for %s, not trading' % (buy_volume, ticker))
 				return
 			buy_volume = min_buy_amount
-			print('Buying min volume %.6f' % (buy_volume))
+			print('Buy amount lower than minimum trade amount for %s, buying min volume %.6f' % (ticker, buy_volume))
 
 
 		print('Buying %.6f %s'% (buy_volume, ticker))
