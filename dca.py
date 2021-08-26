@@ -1,8 +1,9 @@
 import json
 import traceback
 import requests
-# from binance_api import *
+from binance_api import *
 from ftx_api import *
+from kraken_api import *
 from datetime import datetime, timedelta
 import threading
 import numpy as np
@@ -137,6 +138,8 @@ class DCA:
 		t = threading.Thread(target=self.manage_dcas)
 		t.setDaemon(True)
 		t.start()
+
+		exchange = input('\n\nChoose exchange: binance/ftx/kraken: b/f/k\n\n')
 
 		while 1:
 			try:
