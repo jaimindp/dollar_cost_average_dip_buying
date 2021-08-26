@@ -7,6 +7,8 @@ from kraken_api import *
 from datetime import datetime, timedelta
 import threading
 import numpy as np
+import sys
+import queue
 
 
 # Class to manage a DCA strategy
@@ -27,6 +29,7 @@ class DCA:
 		self.start_time = datetime.now()
 		self.log = log
 		self.fg_pull = None
+		self.current_prompt = ''
 
 		with open('../keys.json', 'r') as json_file:
 			self.api_keys = json.load(json_file)
@@ -45,7 +48,6 @@ class DCA:
 				self.wakeup_event.wait(timeout=None if not sleeptime else max(0, sleeptime))
 				t, coin = self.wakeup_times.pop(0)
 
-				print('Woken up from sleep')
 				amount = self.dca_dict[coin]['function'](self.dca_dict[coin]['amount'])
 				print('Amount to buy %.2f' % (amount))
 				self.buy(coin, amount)	
@@ -60,7 +62,7 @@ class DCA:
 				else:
 					sleeptime = 0.1
 
-				print('Sleeping for: %ss' % (sleeptime))
+				print('Sleeping for: %ss\n\n%s' % (sleeptime, self.current_prompt))
 			
 			except Exception as e:
 				print('Error %s' %(traceback.format_exc()))
@@ -72,7 +74,6 @@ class DCA:
 		if coin in self.dca_dict:
 			print('%s already executing' % (coin))
 		else:
-			
 			self.dca_dict[coin] = {'amount':amount, 'frequency':frequency, 'next_buy':start_time, 'function':self.strategies[strategy]}
 			self.wakeup_times.append([start_time, coin])
 			self.wakeup_times.sort()
@@ -83,12 +84,12 @@ class DCA:
 	def buy(self, coin, amount):
 
 		# api = binance_api(self.api_keys)
-		api = ftx_api(self.api_keys)
+		# api = ftx_api(self.api_keys)
 		ticker = '%s/%s' % (coin, self.hold_coin)
 		if self.simulate:
-			trade = api.simulate_buy(ticker, amount)
+			trade = self.api.simulate_buy(ticker, amount)
 		else:
-			trade = api.buy(ticker, amount)
+			trade = self.api.buy(ticker, amount)
 
 		if self.log:
 			self.save_trade(trade, ticker)
@@ -112,7 +113,7 @@ class DCA:
 			print('Just pulled new fear and greed index: %d' % (self.fear_greed_value))
 		
 		fg_weight = -2/(1+np.exp(-0.17*(self.fear_greed_value-50)))+2 # Steep transformation of logistic curve for weighting function
-		print('Multiplier: %.4f' % (fg_weight))
+		print('Multiplier: %.4f' % (fg_weight), delete=False)
 		return fg_weight * amount 
 
 
@@ -121,10 +122,14 @@ class DCA:
 		for k,v in self.running_dcas.items():
 			print(k,v)
 
-
 	# Stop
 	def stop(self):
 		print('Stopped but can be resumed again')
+
+	
+	# Print the stats about the DCAs
+	def stats(self):
+		print('Stats about the dcas running')
 
 
 	# Save it so it can be resumed
@@ -133,24 +138,45 @@ class DCA:
 			json.dump(trade, write_file)
 	
 
-	# Thread asking user for their inputs to interact with the system
+	"""
+	Thread asking user for their inputs to interact with the system
+	"""
 	def input_thread(self):
 		t = threading.Thread(target=self.manage_dcas)
 		t.setDaemon(True)
 		t.start()
 
-		exchange = input('\n\nChoose exchange: binance/ftx/kraken: b/f/k\n\n')
+		exchange_dict = {'b':{'api':binance_api,'hold':'USDT', 'name':'binance'}, 'f':{'api':ftx_api, 'hold':'USD', 'name':'ftx'}, 'k': {'api':kraken_api, 'hold':'USD','name':'kraken'}}
+		self.current_prompt = '\nChoose exchange: binance/ftx/kraken: b/f/k\n\n'
+		exchange = input(self.current_prompt)
+		self.api = exchange_dict[exchange.lower()]['api'](self.api_keys)
+		self.hold_coin = exchange_dict[exchange.lower()]['hold']
+		self.exchange_name = exchange_dict[exchange.lower()]['name']
+
+		self.current_prompt = '\nUsing %s as the coin you hold in your %s wallet\nDo you want to change this? y/n\n\n' % (self.hold_coin, self.exchange_name)
+		change = input(self.current_prompt)
+
+		# Change the hold coin here
+		if change == 'y':
+			self.current_prompt = '\nInput currency/coin wallet used to buy crypto e.g. "USDT" "USD" "GBP"\n\n'
+			self.hold_coin = input(self.current_prompt).upper()
+			# Check that there are trading pairs with this coin and  the crypto you are buying
 
 		while 1:
 			try:
-				user_input = input('\n\nChoose action: new, pnl, stop, save\n\n')	
+				self.current_prompt = '\nActions:\nnew dca: "1"\nstats: "2"\nsave: "3"\nstop: "4"\n\n'
+				user_input = input(self.current_prompt)
 
-				if user_input == 'new':
-					coin = input('\nChoose coin to buy\n\n').upper()
-					amount = float(input('\nChoose $Amount to buy\n\n'))
-					frequency = float(input('\nChoose frequency to buy\n\n'))
+				if user_input == '1':
+					self.current_prompt = '\nInsert coin to buy e.g. "BTC"\n\n'
+					coin = input(self.current_prompt).upper()
 
-					frequency_scale = input('\nWeeks/Days/Hours/Minutes/Seconds W/D/H/M/S\n\n')
+					self.current_prompt = input('\nInsert $Amount to buy e.g. "10"\n\n')
+					amount = float(self.current_prompt)
+
+					self.current_prompt = input('\nInsert frequency to buy in Weeks/Days/Hours/Minutes/Seconds W/D/H/M/S\n\ne.g. 3D/1W\n\n')
+					frequency = float(self.current_prompt[:-1])
+					frequency_scale = self.current_prompt[-1]
 					if frequency_scale.lower() == 'w':
 						frequency *= 3600 * 24 * 7
 					elif frequency_scale.lower() == 'd':
@@ -160,17 +186,24 @@ class DCA:
 					elif frequency_scale.lower() == 'm':
 						frequency *= 60
 
-					strategy = input('\nStrategy: Regular/Fear & Greed r/f\n\n')
+					self.current_prompt = '\nStrategy: Regular/Fear & Greed r/f\n\n'
+					strategy = input(self.current_prompt)
 
 					self.add_dca(coin, amount, frequency, datetime.now(), strategy)
 					
-				elif user_input == 'stop':
-					self.stop()
-					
-				elif user_input == 'save':
+				# Not yet implemented
+				elif user_input == '2':
+					self.stats()
+				
+				# Not yet implemented
+				elif user_input == '3':
 					self.save()
 
-				time.sleep(2)
+				# Not yet implemented
+				elif user_input == '4':
+					self.stop()
+					
+				#time.sleep(2)
 
 			except Exception as e:
 				print('Error in input: %s' % (traceback.format_exc()))
