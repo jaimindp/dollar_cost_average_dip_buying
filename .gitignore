@@ -2,3 +2,5 @@
 __pycache__
 *.json
 *.txt
+Performance_jaimin.ipynb
+.ipynb_checkpoints
