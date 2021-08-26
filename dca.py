@@ -34,8 +34,6 @@ class DCA:
 		with open('../keys.json', 'r') as json_file:
 			self.api_keys = json.load(json_file)
 			
-		# Keep a list sorted by datetime objects 
-
 
 	# Manage dcas
 	def manage_dcas(self):
@@ -101,7 +99,7 @@ class DCA:
 		# Get the fear and greed index from 0-100 with a mean of approximately 50
 		# More fear == Better time to buy so buy more, more greed, worse time to buy so buy less
 		# Essentially a way to increase averaging in over dips
-		# Based around sentiment, RSI and other factors
+		# Based around sentiment, volatility, RSI and other factors
 		# Returns a number between 0 and 2 to scale the buy amount buy 
 
 		# Check when it was last pulled
@@ -113,7 +111,7 @@ class DCA:
 			print('Just pulled new fear and greed index: %d' % (self.fear_greed_value))
 		
 		fg_weight = -2/(1+np.exp(-0.17*(self.fear_greed_value-50)))+2 # Steep transformation of logistic curve for weighting function
-		print('Multiplier: %.4f' % (fg_weight), delete=False)
+		print('Multiplier: %.4f' % (fg_weight))
 		return fg_weight * amount 
 
 
@@ -157,16 +155,17 @@ class DCA:
 		change = input(self.current_prompt)
 
 		# Change the hold coin here
-		if change == 'y':
+		if change.lower() == 'y':
 			self.current_prompt = '\nInput currency/coin wallet used to buy crypto e.g. "USDT" "USD" "GBP"\n\n'
 			self.hold_coin = input(self.current_prompt).upper()
 			# Check that there are trading pairs with this coin and  the crypto you are buying
 
 		while 1:
 			try:
-				self.current_prompt = '\nActions:\nnew dca: "1"\nstats: "2"\nsave: "3"\nstop: "4"\n\n'
+				self.current_prompt = '\nSelect actions:\nnew dca: "1"\nstats: "2"\nsave: "3"\nstop: "4"\n\n'
 				user_input = input(self.current_prompt)
 
+				# New strategy
 				if user_input == '1':
 					self.current_prompt = '\nInsert coin to buy e.g. "BTC"\n\n'
 					coin = input(self.current_prompt).upper()
@@ -177,6 +176,8 @@ class DCA:
 					self.current_prompt = input('\nInsert frequency to buy in Weeks/Days/Hours/Minutes/Seconds W/D/H/M/S\n\ne.g. 3D/1W\n\n')
 					frequency = float(self.current_prompt[:-1])
 					frequency_scale = self.current_prompt[-1]
+
+					# Convert the user input in to a number of seconds to sleep for 
 					if frequency_scale.lower() == 'w':
 						frequency *= 3600 * 24 * 7
 					elif frequency_scale.lower() == 'd':
@@ -203,7 +204,7 @@ class DCA:
 				elif user_input == '4':
 					self.stop()
 					
-				#time.sleep(2)
+				time.sleep(10)
 
 			except Exception as e:
 				print('Error in input: %s' % (traceback.format_exc()))

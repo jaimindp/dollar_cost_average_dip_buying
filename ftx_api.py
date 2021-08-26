@@ -1,6 +1,6 @@
 import ccxt
 import time
-from datetime import datetime
+from datetime import datetime, timedelta
 import json
 import traceback
 import os
@@ -29,23 +29,23 @@ class ftx_api:
 
 		price = self.exchange.fetch_ticker(ticker)['ask']
 		buy_volume /= price
-		step_size = 10**(-self.markets[ticker]['precision']['amount'])
+		step_size = self.markets[ticker]['precision']['amount']
 		buy_volume = round(buy_volume*1/step_size) * step_size
 		min_buy_amount = float(self.markets[ticker]['limits']['amount']['min'])
 
 		# Check if the buy volume is the minimum amount for this exchange
 		if buy_volume < min_buy_amount:
-			if buy_volume < 0.75*min_buy_amount:
-				print('Buy amount %.6f lower than the mininmum trade amount for %s, not trading' % (buy_volume, ticker))
+			if buy_volume < 0.5*min_buy_amount:
+				print('Buy amount %.6f lower than half the mininmum trade amount for %s, not trading' % (buy_volume, ticker))
 				return
 			buy_volume = min_buy_amount
 			print('Buy amount lower than minimum trade amount for %s, buying min volume %.6f' % (ticker, buy_volume))
 
 
 		print('Buying %.6f %s'% (buy_volume, ticker))
-		return
 		buy_trade = self.exchange.create_order(ticker,'market','buy',buy_volume)
 		self.retrieve_order_fees(buy_trade)
+		print(buy_trade)
 		print('Bought: %.6f %s at $%.8f' % (buy_trade['cost'], ticker.split('/')[1], buy_trade['price']))
 		
 		return buy_trade
@@ -56,9 +56,15 @@ class ftx_api:
 
 		try:
 			count = 0
-			while (trade['status'] is None or trade['status'] == 'open') and count < 3:
-				trade = self.exchange.fetch_order(trade['id'], trade['symbol'])
+			this_trade = trade
+			while (this_trade['status'] is None or this_trade['status'] == 'open') and count < 3:
+				this_trade = self.exchange.fetch_order(this_trade['id'])
 				count += 1
+
+			if trade['cost'] is None:
+				trade['cost'] = this_trade['cost']
+			if trade['price'] is None:
+				trade['price'] = this_trade['price']
 
 			# Get the fee from trades
 			if trade['fee'] is None:
@@ -94,7 +100,6 @@ class ftx_api:
 	def simulate_buy(self, ticker, buy_volume):
 
 		trade_price = self.exchange.fetch_ticker(ticker)['ask']
-
 		print('\n{} at {:.8f} {} = {:.6f}{}'.format(buy_volume, trade_price, ticker, buy_volume/trade_price, ticker.split('/')[0]))
 		trade = {'symbol':ticker ,'side':'buy', 'amount':buy_volume, 'cost':trade_price * buy_volume}
 		

@@ -1,6 +1,6 @@
 import ccxt
 import time
-from datetime import datetime
+from datetime import datetime, timedelta
 import json
 import traceback
 import os
@@ -35,15 +35,14 @@ class binance_api:
 
 		# Check if the buy volume is the minimum amount for this exchange
 		if buy_volume < min_buy_amount:
-			if buy_volume < 0.75*min_buy_amount:
-				print('Buy amount %.6f lower than the mininmum trade amount for %s, not trading' % (buy_volume, ticker))
+			if buy_volume < 0.5*min_buy_amount:
+				print('Buy amount %.6f lower than half the mininmum trade amount for %s, not trading' % (buy_volume, ticker))
 				return
 			buy_volume = min_buy_amount
 			print('Buy amount lower than minimum trade amount for %s, buying min volume %.6f' % (ticker, buy_volume))
 
 
 		print('Buying %.6f %s'% (buy_volume, ticker))
-		return
 		buy_trade = self.exchange.create_order(ticker,'market','buy',buy_volume)
 		self.retrieve_order_fees(buy_trade)
 		print('Bought: %.6f %s at $%.8f' % (buy_trade['cost'], ticker.split('/')[1], buy_trade['price']))
