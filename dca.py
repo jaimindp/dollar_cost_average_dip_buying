@@ -31,7 +31,7 @@ class DCA:
 		self.log = log
 		self.fg_pull = None
 		self.current_prompt = ''
-		self.save_keys = ['crypto_amounts','hold_coin','previous_buys','running_dcas','simulate','wakeup_times','dca_dict','start_time','log']
+		self.save_keys = ['dca_name','crypto_amounts','hold_coin','previous_buys','running_dcas','simulate','wakeup_times','dca_dict','start_time','log']
 
 		with open('../keys.json', 'r') as json_file:
 			self.api_keys = json.load(json_file)
@@ -136,6 +136,28 @@ class DCA:
 		print('Stopped and saved')
 		exit()
 	
+
+	# Resume after stopping
+	def resume(self):
+
+		files = sorted(os.listdir('saved_dca/'))
+		if files:
+			input('Is this correct y/n:\n\n%s\n' % files[-1])
+
+			with open('saved_dca/%s' % files[-1], 'r') as json_file:
+				dca = json.load(json_file)
+		
+		self.crypto_amounts = dca['crypto_amounts']
+		self.hold_coin = dca['hold_coin']
+		self.previous_buys = dca['previous_buys']
+		self.running_dcas = dca['previous_buys']
+		self.simulate = dca['simulate']
+		self.wakeup_times = dca['simulate']
+		self.strategies = dca['strategies']
+		self.dca_dict = dca['dca_dict']
+		self.start_time = dca['start_time']
+
+
 	# Print the stats about the DCAs
 	def stats(self):
 		print('Stats about the dcas running')
@@ -176,9 +198,12 @@ class DCA:
 				self.hold_coin = 'USDT'
 			# Check that there are trading pairs with this coin and  the crypto you are buying
 
+		first = True
+
 		while 1:
 			try:
-				self.current_prompt = '\nResume: "0" Select actions:\nnew dca: "1"\nstats: "2"\nsave: "3"\nstop: "4"\n\n'
+				self.current_prompt = 'Select action:\n\n%snew dca: "1"\nstats: "2"\nsave: "3"\nstop: "4"\n\n' % ('Resume: "0"\n' if first else '')
+				first = False
 				user_input = input(self.current_prompt)
 				if not user_input:
 					user_input = '1'
@@ -198,7 +223,7 @@ class DCA:
 					else:
 						amount = float(self.current_prompt)
 
-					self.current_prompt = input('\nInsert frequency to buy in Weeks/Days/Hours/Minutes/Seconds W/D/H/M/S\n\ne.g. 3D/1W\n\n')
+					self.current_prompt = input('\nInsert frequency to buy in Weeks/Days/Hours/Minutes/Seconds W/D/H/M/S\n\ne.g. 20S/12H/3D/1W\n\n')
 					if not self.current_prompt:
 						frequency = 2
 						frequency_scale = 's'
