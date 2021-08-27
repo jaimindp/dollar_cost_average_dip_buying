@@ -11,12 +11,12 @@ def save_obj(obj):
 	elif isinstance(obj, (dict)):
 		new_dict = {}
 		for k,v in obj.items():
-			if k != 'function':
+			if k != 'func':
 				new_dict[k] = save_obj(v)
 		for k,v in new_dict.items():
 			obj[k] = v
-		if 'function' in obj:
-			obj.pop('function')
+		if 'func' in obj:
+			obj.pop('func')
 
 	# If this object can be converted to a dict
 	elif hasattr(obj, '__dict__'):

@@ -48,7 +48,7 @@ class DCA:
 				self.wakeup_event.wait(timeout=None if not sleeptime else max(0, sleeptime))
 				t, coin = self.wakeup_times.pop(0)
 
-				amount = self.dca_dict[coin]['function'](self.dca_dict[coin]['amount'])
+				amount = self.dca_dict[coin]['function']['func'](self.dca_dict[coin]['amount'])
 				print('Amount to buy %.2f' % (amount))
 				self.buy(coin, amount)	
 
@@ -74,7 +74,7 @@ class DCA:
 		if coin in self.dca_dict:
 			print('%s already executing' % (coin))
 		else:
-			self.dca_dict[coin] = {'amount':amount, 'frequency':frequency, 'next_buy':start_time, 'function':self.strategies[strategy]}
+			self.dca_dict[coin] = {'amount':amount, 'frequency':frequency, 'next_buy':start_time, 'function':{'name':strategy, 'func':self.strategies[strategy]}}
 			self.wakeup_times.append([start_time, coin])
 			self.wakeup_times.sort()
 			self.wakeup_event.set()
@@ -125,18 +125,16 @@ class DCA:
 	# Stop
 	def stop(self):
 
+		# Create a dictionary of relevant information to save
 		save_dict = {}
-
 		for key in list(set(self.__dict__.keys()).intersection(self.save_keys)):
 			save_dict[key] = self.__dict__[key]
 
-		print(save_dict)
 		# Manage dcas
 		with open('saved_dca/%s.json' % (datetime.now().strftime('%y_%m_%d-%H_%M_%S')), 'w') as json_file:
 			json.dump(save_obj(save_dict), json_file)
 		print('Stopped and saved')
 		exit()
-
 	
 	# Print the stats about the DCAs
 	def stats(self):
