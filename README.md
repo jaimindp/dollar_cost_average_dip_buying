@@ -12,6 +12,9 @@ Strategies tested and planning to be tested:
 - Volatility Based DCA
 
 ### Updates
+August 27th
+FTX Set up and more intuitive UI. Also more backtesting in the analysis notbook
+
 August 12th:
 Fear and greed DCA handling for buy amounts lower than the minimum buy amount for each coin
 
