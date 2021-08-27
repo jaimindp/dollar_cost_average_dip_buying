@@ -9,6 +9,7 @@ import threading
 import numpy as np
 import sys
 import queue
+from save import *
 
 
 # Class to manage a DCA strategy
@@ -30,6 +31,7 @@ class DCA:
 		self.log = log
 		self.fg_pull = None
 		self.current_prompt = ''
+		self.save_keys = ['crypto_amounts','hold_coin','previous_buys','running_dcas','simulate','wakeup_times','dca_dict','start_time','log']
 
 		with open('../keys.json', 'r') as json_file:
 			self.api_keys = json.load(json_file)
@@ -122,7 +124,18 @@ class DCA:
 
 	# Stop
 	def stop(self):
-		print('Stopped but can be resumed again')
+
+		save_dict = {}
+
+		for key in list(set(self.__dict__.keys()).intersection(self.save_keys)):
+			save_dict[key] = self.__dict__[key]
+
+		print(save_dict)
+		# Manage dcas
+		with open('saved_dca/%s.json' % (datetime.now().strftime('%y_%m_%d-%H_%M_%S')), 'w') as json_file:
+			json.dump(save_obj(save_dict), json_file)
+		print('Stopped and saved')
+		exit()
 
 	
 	# Print the stats about the DCAs
@@ -134,7 +147,6 @@ class DCA:
 	def save_trade(self, trade, ticker):
 		with open('prev_trades/dca_%s_%s_%s.json' % (datetime.now().strftime('%y_%m_%d-%H_%M_%S'), ticker.split('/')[0], 'sim' if self.simulate else 'live'), 'w') as write_file:
 			json.dump(trade, write_file)
-	
 
 	"""
 	Thread asking user for their inputs to interact with the system
@@ -147,35 +159,54 @@ class DCA:
 		exchange_dict = {'b':{'api':binance_api,'hold':'USDT', 'name':'binance'}, 'f':{'api':ftx_api, 'hold':'USD', 'name':'ftx'}, 'k': {'api':kraken_api, 'hold':'USD','name':'kraken'}}
 		self.current_prompt = '\nChoose exchange: binance/ftx/kraken: b/f/k\n\n'
 		exchange = input(self.current_prompt)
+		if not exchange:
+			exchange = 'b'
 		self.api = exchange_dict[exchange.lower()]['api'](self.api_keys)
 		self.hold_coin = exchange_dict[exchange.lower()]['hold']
 		self.exchange_name = exchange_dict[exchange.lower()]['name']
 
 		self.current_prompt = '\nUsing %s as the coin you hold in your %s wallet\nDo you want to change this? y/n\n\n' % (self.hold_coin, self.exchange_name)
 		change = input(self.current_prompt)
+		if not change:
+			change = 'n'
 
 		# Change the hold coin here
 		if change.lower() == 'y':
 			self.current_prompt = '\nInput currency/coin wallet used to buy crypto e.g. "USDT" "USD" "GBP"\n\n'
 			self.hold_coin = input(self.current_prompt).upper()
+			if not self.hold_coin:
+				self.hold_coin = 'USDT'
 			# Check that there are trading pairs with this coin and  the crypto you are buying
 
 		while 1:
 			try:
-				self.current_prompt = '\nSelect actions:\nnew dca: "1"\nstats: "2"\nsave: "3"\nstop: "4"\n\n'
+				self.current_prompt = '\nResume: "0" Select actions:\nnew dca: "1"\nstats: "2"\nsave: "3"\nstop: "4"\n\n'
 				user_input = input(self.current_prompt)
+				if not user_input:
+					user_input = '1'
 
 				# New strategy
-				if user_input == '1':
+				if user_input == '0':
+					self.resume()	
+				elif user_input == '1':
 					self.current_prompt = '\nInsert coin to buy e.g. "BTC"\n\n'
 					coin = input(self.current_prompt).upper()
+					if not coin:
+						coin = 'BTC'
 
 					self.current_prompt = input('\nInsert $Amount to buy e.g. "10"\n\n')
-					amount = float(self.current_prompt)
+					if not self.current_prompt:
+						amount = 10
+					else:
+						amount = float(self.current_prompt)
 
 					self.current_prompt = input('\nInsert frequency to buy in Weeks/Days/Hours/Minutes/Seconds W/D/H/M/S\n\ne.g. 3D/1W\n\n')
-					frequency = float(self.current_prompt[:-1])
-					frequency_scale = self.current_prompt[-1]
+					if not self.current_prompt:
+						frequency = 2
+						frequency_scale = 's'
+					else:
+						frequency = float(self.current_prompt[:-1])
+						frequency_scale = self.current_prompt[-1]
 
 					# Convert the user input in to a number of seconds to sleep for 
 					if frequency_scale.lower() == 'w':
@@ -189,6 +220,8 @@ class DCA:
 
 					self.current_prompt = '\nStrategy: Regular/Fear & Greed r/f\n\n'
 					strategy = input(self.current_prompt)
+					if not strategy:
+						strategy = 'r'
 
 					self.add_dca(coin, amount, frequency, datetime.now(), strategy)
 					
@@ -204,7 +237,7 @@ class DCA:
 				elif user_input == '4':
 					self.stop()
 					
-				time.sleep(10)
+				#time.sleep(10)
 
 			except Exception as e:
 				print('Error in input: %s' % (traceback.format_exc()))
@@ -224,5 +257,4 @@ else:
 
 dca = DCA('dca_test', simulate=simulate, log=log)
 dca.input_thread()
-
 
