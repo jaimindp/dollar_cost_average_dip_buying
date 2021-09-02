@@ -18,9 +18,9 @@ This repo lets you run and backtest DCA strategies for crypto to minimise risk a
 
 
 2. Load up your spot wallet with USD or USDT or whatever currency you want to use to buy crypto 
-<br></br><br></br>
+<br></br>
 3. Create API keys with 'trading' permissions enabled and load 
-<br></br><br></br>
+<br></br>
 4. Put your API keys in a json_file called `keys.json` (Only the exchange keys used to trade need to be included)
 
 ```
@@ -41,9 +41,9 @@ This repo lets you run and backtest DCA strategies for crypto to minimise risk a
 ```
 
 5. Install the required python packages using `pip install -r requirements.txt` from the root directory
-<br></br><br></br>
+<br></br>
 6. Run `python dca.py` to start or `python dca.py -s` to start in simulation mode (places fake trades)
-<br></br><br></br>
+<br></br>
 7. Follow the instructions in the command prompt to set up alternatively use the config.json file (Work in progress) 
 
 Places (spot) market buy orders on the exchange at the current price, it then sleeps until the next buy interval. It will save progress so it doesn't have to be continuously run but I would reccomend running this perpetually (on a linux based microcomputer like a Rasberry Pi). Different DCA strategies will be put in as we go!
