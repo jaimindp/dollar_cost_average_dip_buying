@@ -49,7 +49,7 @@ This repo lets you run and backtest DCA strategies for crypto to minimise risk a
 Places (spot) market buy orders on the exchange at the current price, it then sleeps until the next buy interval. It will save progress so it doesn't have to be continuously run but I would reccomend running this perpetually (on a linux based microcomputer like a Rasberry Pi). Different DCA strategies will be put in as we go!
 
 Strategies tested and planning to be tested:
-- [x] According to the Crypto Fear and Greed Index [title](https://alternative.me/crypto/fear-and-greed-index) (Buys more when fear is higher, buys less when greed is higher)
+- [x] According to the Crypto Fear and Greed Index https://alternative.me/crypto/fear-and-greed-index (Buys more when fear is higher, buys less when greed is higher)
 - [ ] RSI based DCA
 - [ ] Volatility Based DCA
 
