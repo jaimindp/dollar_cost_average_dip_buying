@@ -2,11 +2,11 @@
 
 
 ### Overview
-Dollar Cost Averaging: Dividing a sum of investment money to be invested periodically to reduce the impact of volatility on the purchase price. If you want a risk mitigating way to invest in crypto DCA is the standard procedure. But can we do better?
+Dollar Cost Averaging - DCA: Dividing a sum of money to invest periodically, reducing the impact of volatility on the purchase price. DCA is the commonly accepted risk mitigating way to invest in crypto. But can we do better?
 
-**Buy the dip** - I'm sure you've heard it before but it's easier said than done. The indicators in this repo are provided to help buy the dip algorithmically: or scale the amount per DCA order to invest more when it's likely crpyto is dipping and less when it is not.
+**Buy the dip** - I'm sure you've heard it before but it's much easier said than done. The indicators in this repo are provided to help buy the dip algorithmically: Weighting the buy amount per order to invest more when it's likely crpyto is in a dip and less when it is not.
 
-This repo lets you run and backtest DCA strategies for crypto to minimise risk and maximise profits allowing for user customisation with respect to frequency of buy strategy, use of indicators and aggression of parammeter scaling
+This repo lets you run and backtest DCA strategies for crypto to minimise risk and maximise profits, allowing for user customisation with respect to frequency of purchasing, use of indicators and aggression or weighting
 
 ### Setup instructions
 
