@@ -21,7 +21,7 @@ This repo lets you run and backtest DCA strategies for crypto to minimise risk a
 <br></br>
 3. Create API keys with 'trading' permissions enabled and load 
 <br></br>
-4. Put your API keys in a json_file called `keys.json` (Only the exchange keys used to trade need to be included)
+4. Put your API keys in a json file called `keys.json` one directory above the repo (Only the exchange keys used to trade need to be included)
 
 ```
 {
