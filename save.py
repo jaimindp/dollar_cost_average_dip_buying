@@ -1,5 +1,6 @@
 from datetime import datetime
 
+
 # Converts an object to a json safe dictionary for saving
 def save_obj(obj):
 
@@ -29,7 +30,7 @@ def save_obj(obj):
 			else:
 				to_pop.append(k)
 		for i in to_pop:
-			delattr(obj , i)
+			delattr(obj, i)
 
 	# Convert this object if it is a datetime
 	elif isinstance(obj, (datetime)):
@@ -41,3 +42,4 @@ def save_obj(obj):
 			obj[i] = save_obj(child)
 
 	return obj
+

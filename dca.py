@@ -1,15 +1,16 @@
 import json
 import traceback
 import requests
-from binance_api import *
-from ftx_api import *
-from kraken_api import *
+import os
 from datetime import datetime, timedelta
 import threading
 import numpy as np
 import sys
 import queue
 from save import *
+from binance_api import *
+from ftx_api import *
+from kraken_api import *
 
 
 # Class to manage a DCA strategy
@@ -133,6 +134,7 @@ class DCA:
 		# Manage dcas
 		with open('saved_dca/%s.json' % (datetime.now().strftime('%y_%m_%d-%H_%M_%S')), 'w') as json_file:
 			json.dump(save_obj(save_dict), json_file)
+
 		print('Stopped and saved')
 		exit()
 	
