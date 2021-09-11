@@ -59,9 +59,9 @@ Strategies tested and planning to be tested:
 
 The fear and greed strategy chart shows 100 - fear and greed index (red) and bitcoin price (blue). When fear is high (red line close to 100) invest more and when greed is high (red line close to 0) invest less. By doing this we can invest according to this weighting to increase the amount of BTC held over a long period of time compared to regular DCA.
 
-Currently:
+Current fear and greed:
 
-<img src="https://alternative.me/crypto/fear-and-greed-index.png" alt="Latest Crypto Fear & Greed Index" width="300" height="300"/>
+<img src="https://alternative.me/crypto/fear-and-greed-index.png" alt="Latest Crypto Fear & Greed Index" width="500" height="300" class="center"/>
 
 ### Updates
 August 27th
