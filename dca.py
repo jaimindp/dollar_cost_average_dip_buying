@@ -8,12 +8,15 @@ import numpy as np
 import sys
 import queue
 from save import *
+from pprint import pprint
 from binance_api import *
 from ftx_api import *
 from kraken_api import *
 
 
-# Class to manage a DCA strategy
+"""
+Class to manage a DCA strategy
+"""
 class DCA:
 
 	def __init__(self, name='dca_1', simulate=True, log=False):
@@ -22,7 +25,6 @@ class DCA:
 		self.hold_coin = 'USDT'
 		self.previous_buys = {}
 		self.wakeup_event = threading.Event()
-		self.running_dcas = {}
 		self.dca_name = name
 		self.simulate = simulate
 		self.wakeup_times = [] # [[datetime1, coin1], [datetime2, coin2]]
@@ -32,13 +34,15 @@ class DCA:
 		self.log = log
 		self.fg_pull = None
 		self.current_prompt = ''
-		self.save_keys = ['dca_name','crypto_amounts','hold_coin','previous_buys','running_dcas','simulate','wakeup_times','dca_dict','start_time','log']
+		self.save_keys = ['dca_name','crypto_amounts','hold_coin','previous_buys','simulate','wakeup_times','dca_dict','start_time','log']
 
 		with open('../keys.json', 'r') as json_file:
 			self.api_keys = json.load(json_file)
 			
 
-	# Manage dcas
+	"""
+	Manage dcas
+	"""
 	def manage_dcas(self):
 
 		sleeptime = None
@@ -64,12 +68,16 @@ class DCA:
 					sleeptime = 0.1
 
 				print('Sleeping for: %ss\n\n%s' % (sleeptime, self.current_prompt))
+				print('Current DCAs:')
+				self.report()
 			
 			except Exception as e:
 				print('Error %s' %(traceback.format_exc()))
 
 
-	# Start a dca 
+	"""
+	Start a dca 
+	"""
 	def add_dca(self, coin, amount, frequency, start_time, strategy):
 
 		if coin in self.dca_dict:
@@ -81,7 +89,9 @@ class DCA:
 			self.wakeup_event.set()
 		
 
-	# Buy the coin
+	"""
+	Buy the coin
+	"""
 	def buy(self, coin, amount):
 
 		# api = binance_api(self.api_keys)
@@ -96,8 +106,9 @@ class DCA:
 			self.save_trade(trade, ticker)
 
 
-	# Pull fear and greed index to invest an increasing amount according to it
-	# Danger of min buy amounts being lower than executable on exchange (how to combat?)
+	"""
+	Pull fear and greed index to invest an increasing amount according to it
+	"""
 	def fear_greed(self, amount):
 		# Get the fear and greed index from 0-100 with a mean of approximately 50
 		# More fear == Better time to buy so buy more, more greed, worse time to buy so buy less
@@ -107,66 +118,110 @@ class DCA:
 
 		# Check when it was last pulled
 		now = datetime.now()
-		if self.fg_pull is None or (self.fg_pull.date() < now.date() and now.hour >= 1) or (self.fg_pull.date() == now.date() and self.fg_pull.hour < 1 and now.hour >= 1):
-			fg_dict = requests.get('https://api.alternative.me/fng/?format=json&date_format=uk').json()		
-			self.fear_greed_value = int(fg_dict['data'][0]['value'])
-			self.fg_pull = datetime.now()
-			print('Just pulled new fear and greed index: %d' % (self.fear_greed_value))
+		try:
+			if self.fg_pull is None or (self.fg_pull.date() < now.date() and now.hour >= 1) or (self.fg_pull.date() == now.date() and self.fg_pull.hour < 1 and now.hour >= 1):
+				fg_dict = requests.get('https://api.alternative.me/fng/?format=json&date_format=uk').json()		
+				self.fear_greed_value = int(fg_dict['data'][0]['value'])
+				self.fg_pull = datetime.now()
+				print('Pulled Fear and Greed index: %d' % (self.fear_greed_value))
+
+			fg_weight = -2/(1+np.exp(-0.17*(self.fear_greed_value-50)))+2 # Steep transformation of logistic curve for weighting function
+			print('Investment multiplier: %.4f' % (fg_weight))
+
+		except Exception as e:
+			fg_weight = 1
+			print('Error: %s' % e)
 		
-		fg_weight = -2/(1+np.exp(-0.17*(self.fear_greed_value-50)))+2 # Steep transformation of logistic curve for weighting function
-		print('Multiplier: %.4f' % (fg_weight))
 		return fg_weight * amount 
 
 
-	# Get DCA report for all coins
+	"""
+	Get DCA report for all coins
+	"""
 	def report(self):
-		for k,v in self.running_dcas.items():
-			print(k,v)
+		pprint({k:v for k,v in self.__dict__.items() if k in self.save_keys})
 
-	# Stop
+
+	"""
+	Stop
+	"""
 	def stop(self):
+		self.save()
+		print('Stopped and saved')
+		exit()
+	
 
+	"""
+	Save
+	"""
+	def save(self):
+		
 		# Create a dictionary of relevant information to save
 		save_dict = {}
 		for key in list(set(self.__dict__.keys()).intersection(self.save_keys)):
 			save_dict[key] = self.__dict__[key]
 
 		# Manage dcas
-		with open('saved_dca/%s.json' % (datetime.now().strftime('%y_%m_%d-%H_%M_%S')), 'w') as json_file:
+		with open('saved_dca/%s_%s.json' % (datetime.now().strftime('%y_%m_%d-%H_%M_%S'), 'sim' if self.simulate else 'live'), 'w') as json_file:
 			json.dump(save_obj(save_dict), json_file)
-
-		print('Stopped and saved')
-		exit()
 	
 
-	# Resume after stopping
+	"""
+	Resume after stopping
+	"""
 	def resume(self):
 
 		files = sorted(os.listdir('saved_dca/'))
 		if files:
-			input('Is this correct y/n:\n\n%s\n' % files[-1])
+			print('\nReloading from last saved file: %s\n' % files[-1])
 
 			with open('saved_dca/%s' % files[-1], 'r') as json_file:
 				dca = json.load(json_file)
 		
+		# Read in all the fields from the saved json
 		self.crypto_amounts = dca['crypto_amounts']
 		self.hold_coin = dca['hold_coin']
 		self.previous_buys = dca['previous_buys']
-		self.running_dcas = dca['previous_buys']
 		self.simulate = dca['simulate']
-		self.wakeup_times = dca['simulate']
-		self.strategies = dca['strategies']
 		self.dca_dict = dca['dca_dict']
-		self.start_time = dca['start_time']
 
+		# Convert all the saved time strings into datetimes
+		self.start_time = datetime.strptime(dca['start_time'], '%Y-%m-%dT%H:%M:%S.%f')
 
-	# Print the stats about the DCAs
+		self.wakeup_times = [[datetime.strptime(i[0],'%Y-%m-%dT%H:%M:%S.%f'), i[1]] for i in dca['wakeup_times']]
+
+		# Loop over the coins in the dca dict 
+		for coin in self.dca_dict:
+			self.dca_dict[coin]['next_buy'] = datetime.strptime(self.dca_dict[coin]['next_buy'], '%Y-%m-%dT%H:%M:%S.%f')
+			self.dca_dict[coin]['function']['func'] = self.strategies[self.dca_dict[coin]['function']['name']]
+
+		 
+		for wakeup_time, coin in self.wakeup_times:
+			if datetime.now() > wakeup_time:
+				missed = (datetime.now() - wakeup_time).seconds // self.dca_dict[coin]['frequency']
+				print('\n\nFor coin: %s you missed %d buys' % (coin, missed))
+				input('\n\nWhat do you want to do, rebuy or skip r/s\n\n')
+
+					
+		self.wakeup_times.sort()
+		self.wakeup_event.set()
+		
+
+	"""
+	Print the stats about the DCAs
+	"""
 	def stats(self):
+		# Amount invested
+		# Avg buy price
 		print('Stats about the dcas running')
 
 
-	# Save it so it can be resumed
+	"""
+	Log the trade in a json
+	"""
 	def save_trade(self, trade, ticker):
+		if 'prev_trades' not in os.listdir():
+			os.mkdir('prev_trades')
 		with open('prev_trades/dca_%s_%s_%s.json' % (datetime.now().strftime('%y_%m_%d-%H_%M_%S'), ticker.split('/')[0], 'sim' if self.simulate else 'live'), 'w') as write_file:
 			json.dump(trade, write_file)
 
@@ -202,80 +257,87 @@ class DCA:
 
 		first = True
 
-		while 1:
-			try:
-				self.current_prompt = 'Select action:\n\n%snew dca: "1"\nstats: "2"\nsave: "3"\nstop: "4"\n\n' % ('Resume: "0"\n' if first else '')
-				first = False
-				user_input = input(self.current_prompt)
-				if not user_input:
-					user_input = '1'
+		try:
+			while 1:
+				try:
+					self.current_prompt = 'Select action:\n\n%snew dca: "1"\nstats: "2"\nsave: "3"\nstop: "4"\n\n' % ('Resume: "0"\n' if first else '')
+					first = False
+					user_input = input(self.current_prompt)
+					if not user_input:
+						user_input = '1'
 
-				# New strategy
-				if user_input == '0':
-					self.resume()	
-				elif user_input == '1':
-					self.current_prompt = '\nInsert coin to buy e.g. "BTC"\n\n'
-					coin = input(self.current_prompt).upper()
-					if not coin:
-						coin = 'BTC'
+					# New strategy
+					if user_input == '0':
+						self.resume()	
+					elif user_input == '1':
+						self.current_prompt = '\nInsert coin to buy e.g. "BTC"\n\n'
+						coin = input(self.current_prompt).upper()
+						if not coin:
+							coin = 'BTC'
 
-					self.current_prompt = input('\nInsert $Amount to buy e.g. "10"\n\n')
-					if not self.current_prompt:
-						amount = 10
-					else:
-						amount = float(self.current_prompt)
+						self.current_prompt = input('\nInsert $Amount to buy e.g. "10"\n\n')
+						if not self.current_prompt:
+							amount = 10
+						else:
+							amount = float(self.current_prompt)
 
-					self.current_prompt = input('\nInsert frequency to buy in Weeks/Days/Hours/Minutes/Seconds W/D/H/M/S\n\ne.g. 20S/12H/3D/1W\n\n')
-					if not self.current_prompt:
-						frequency = 2
-						frequency_scale = 's'
-					else:
-						frequency = float(self.current_prompt[:-1])
-						frequency_scale = self.current_prompt[-1]
+						self.current_prompt = input('\nInsert frequency to buy in Weeks/Days/Hours/Minutes/Seconds W/D/H/M/S\n\ne.g. 20S/12H/3D/1W\n\n')
+						if not self.current_prompt:
+							frequency = 2
+							frequency_scale = 's'
+						else:
+							frequency = float(self.current_prompt[:-1])
+							frequency_scale = self.current_prompt[-1]
 
-					# Convert the user input in to a number of seconds to sleep for 
-					if frequency_scale.lower() == 'w':
-						frequency *= 3600 * 24 * 7
-					elif frequency_scale.lower() == 'd':
-						frequency *= 3600 * 24
-					elif frequency_scale.lower() == 'h':
-						frequency *= 3600
-					elif frequency_scale.lower() == 'm':
-						frequency *= 60
+						# Convert the user input in to a number of seconds to sleep for 
+						if frequency_scale.lower() == 'w':
+							frequency *= 3600 * 24 * 7
+						elif frequency_scale.lower() == 'd':
+							frequency *= 3600 * 24
+						elif frequency_scale.lower() == 'h':
+							frequency *= 3600
+						elif frequency_scale.lower() == 'm':
+							frequency *= 60
 
-					self.current_prompt = '\nStrategy: Regular/Fear & Greed r/f\n\n'
-					strategy = input(self.current_prompt)
-					if not strategy:
-						strategy = 'r'
+						self.current_prompt = '\nStrategy: Regular/Fear & Greed r/f\n\n'
+						strategy = input(self.current_prompt)
+						if not strategy:
+							strategy = 'r'
 
-					self.add_dca(coin, amount, frequency, datetime.now(), strategy)
+						self.add_dca(coin, amount, frequency, datetime.now(), strategy)
+						
+					# Not yet implemented
+					elif user_input == '2':
+						self.stats()
 					
-				# Not yet implemented
-				elif user_input == '2':
-					self.stats()
-				
-				# Not yet implemented
-				elif user_input == '3':
-					self.save()
+					# Not yet implemented
+					elif user_input == '3':
+						self.save()
 
-				# Not yet implemented
-				elif user_input == '4':
-					self.stop()
-					
-				#time.sleep(10)
+					# Not yet implemented
+					elif user_input == '4':
+						self.stop()
+						
+					#time.sleep(10)
 
-			except Exception as e:
-				print('Error in input: %s' % (traceback.format_exc()))
-				exit()
+				except Exception as e:
+					print('Error in input: %s' % (traceback.format_exc()))
+					exit()
 
+		except KeyboardInterrupt:
+			print('\nHandling keyboard interrupt')
+
+			self.stop()
 
 log, simulate = False, False
 if '-l' in sys.argv:
 	log = True
-	print('logging')
+	print('\n\nBuys will be logged')
+
 if '-s' in sys.argv:
 	simulate = True
 	print('\n\nSIMULATING')
+
 else:
 	print('\n\nLIVE TRADING')
 

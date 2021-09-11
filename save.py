@@ -1,6 +1,5 @@
 from datetime import datetime
 
-
 # Converts an object to a json safe dictionary for saving
 def save_obj(obj):
 
