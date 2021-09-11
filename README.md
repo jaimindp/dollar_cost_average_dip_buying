@@ -61,7 +61,7 @@ The fear and greed strategy chart shows 100 - fear and greed index (red) and bit
 
 Current fear and greed:
 
-<img src="https://alternative.me/crypto/fear-and-greed-index.png" alt="Latest Crypto Fear & Greed Index" width="400" height="300" class="center"/>
+<img src="https://alternative.me/crypto/fear-and-greed-index.png" alt="Latest Crypto Fear & Greed Index" width="350" height="300" class="center"/>
 
 ### Updates
 August 27th
