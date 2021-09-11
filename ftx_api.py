@@ -20,7 +20,6 @@ class ftx_api:
 
 	# Get markets
 	def get_markets(self):
-
 		for market in self.exchange.fetch_markets():
 			self.markets[market['symbol']] = market 
 
