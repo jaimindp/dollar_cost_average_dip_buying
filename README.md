@@ -64,6 +64,9 @@ Current fear and greed:
 <img src="https://alternative.me/crypto/fear-and-greed-index.png" alt="Latest Crypto Fear & Greed Index" width="350" height="300" class="center"/>
 
 ### Updates
+September 12th
+Allows for stopping, saving and restarting allowing the user to choose to buy at the current price or skipping instead
+
 August 27th
 FTX Set up and more intuitive UI. Also more backtesting in the analysis notebook
 
