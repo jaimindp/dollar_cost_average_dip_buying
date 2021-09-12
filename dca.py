@@ -60,7 +60,7 @@ class DCA:
 					sys.stdout.write('\x1b[1A')
 					sys.stdout.write('\x1b[2K')
 
-				print('\n\n%s Woken up %s' % ('*'*28, '*'*28))
+				print('\n\n%s Woken up %s\n' % ('*'*28, '*'*28))
 				if t < datetime.now():
 					# Execute the buy
 					amount = self.dca_dict[coin]['function']['func'](self.dca_dict[coin]['amount'])
@@ -83,7 +83,7 @@ class DCA:
 				else:
 					sleeptime = 0.1
 
-				print('%s  Sleeping for: %.2fs  %s\n\n %s' % ('-'*20, sleeptime, '-'*20, self.current_prompt))
+				print('\n%s  Sleeping for: %.2fs  %s\n\n %s' % ('-'*20, sleeptime, '-'*20, self.current_prompt))
 				"""
 				print('Current DCAs:')
 				self.report()
