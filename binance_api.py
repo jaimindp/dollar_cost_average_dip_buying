@@ -94,7 +94,7 @@ class binance_api:
 
 		trade_price = self.exchange.fetch_ticker(ticker)['ask']
 
-		print('\n{} at {:.8f} {} = {:.6f}{}'.format(buy_volume, trade_price, ticker, buy_volume/trade_price, ticker.split('/')[0]))
+		print('\nSimulated Buy: ${} at {:.8f} {} = {:.6f}{}'.format(buy_volume, trade_price, ticker, buy_volume/trade_price, ticker.split('/')[0]))
 		trade = {'symbol':ticker ,'side':'buy', 'amount':buy_volume, 'cost':trade_price * buy_volume}
 		
 		return trade

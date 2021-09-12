@@ -34,7 +34,9 @@ class DCA:
 		self.log = log
 		self.fg_pull = None
 		self.current_prompt = ''
-		self.save_keys = ['dca_name','crypto_amounts','hold_coin','previous_buys','simulate','wakeup_times','dca_dict','start_time','log']
+		self.exchange_apis = {'binance':binance_api, 'ftx':ftx_api, 'api':kraken_api}
+		self.exchange_dict = {'b':{'api':binance_api,'hold':'USDT', 'name':'binance'}, 'f':{'api':ftx_api, 'hold':'USD', 'name':'ftx'}, 'k': {'api':kraken_api, 'hold':'USD','name':'kraken'}}
+		self.save_keys = ['dca_name','crypto_amounts','hold_coin','previous_buys','simulate','wakeup_times','dca_dict','start_time','log','exchange_name']
 
 		with open('../keys.json', 'r') as json_file:
 			self.api_keys = json.load(json_file)
@@ -53,15 +55,24 @@ class DCA:
 				self.wakeup_event.wait(timeout=None if not sleeptime else max(0, sleeptime))
 				t, coin = self.wakeup_times.pop(0)
 
-				amount = self.dca_dict[coin]['function']['func'](self.dca_dict[coin]['amount'])
-				print('Amount to buy %.2f' % (amount))
-				self.buy(coin, amount)	
+				if t > datetime.now() - timedelta(seconds=1):
+					# Execute the buy
+					amount = self.dca_dict[coin]['function']['func'](self.dca_dict[coin]['amount'])
 
-				self.dca_dict[coin]['next_buy'] = datetime.now() + timedelta(seconds=self.dca_dict[coin]['frequency'])
-				print('Next buy of %s %s' % (coin, self.dca_dict[coin]['next_buy'].strftime('%b %d %H:%M:%S')))
-				self.wakeup_times.append([self.dca_dict[coin]['next_buy'], coin])
+					print('Amount to buy %.2f' % (amount))
+					self.buy(coin, amount)	
+					next_buy = datetime.now() + timedelta(seconds=self.dca_dict[coin]['frequency'])
+
+				else:
+					# Just add next buy time
+					next_buy = t
+
+				print('Next buy of %s %s' % (coin, next_buy.strftime('%b %d %H:%M:%S')))
+				self.wakeup_times.append([next_buy, coin])
 
 				self.wakeup_times.sort()
+				print(self.wakeup_times[0][0], datetime.now())
+				
 				if self.wakeup_times[0][0] > datetime.now():
 					sleeptime = (self.wakeup_times[0][0] - datetime.now()).total_seconds()
 				else:
@@ -70,7 +81,7 @@ class DCA:
 				print('Sleeping for: %ss\n\n%s' % (sleeptime, self.current_prompt))
 				print('Current DCAs:')
 				self.report()
-			
+
 			except Exception as e:
 				print('Error %s' %(traceback.format_exc()))
 
@@ -83,7 +94,8 @@ class DCA:
 		if coin in self.dca_dict:
 			print('%s already executing' % (coin))
 		else:
-			self.dca_dict[coin] = {'amount':amount, 'frequency':frequency, 'next_buy':start_time, 'function':{'name':strategy, 'func':self.strategies[strategy]}}
+			#self.dca_dict[coin] = {'amount':amount, 'frequency':frequency, 'next_buy':start_time, 'function':{'name':strategy, 'func':self.strategies[strategy]}}
+			self.dca_dict[coin] = {'amount':amount, 'frequency':frequency, 'function':{'name':strategy, 'func':self.strategies[strategy]}}
 			self.wakeup_times.append([start_time, coin])
 			self.wakeup_times.sort()
 			self.wakeup_event.set()
@@ -94,8 +106,6 @@ class DCA:
 	"""
 	def buy(self, coin, amount):
 
-		# api = binance_api(self.api_keys)
-		# api = ftx_api(self.api_keys)
 		ticker = '%s/%s' % (coin, self.hold_coin)
 		if self.simulate:
 			trade = self.api.simulate_buy(ticker, amount)
@@ -104,6 +114,8 @@ class DCA:
 
 		if self.log:
 			self.save_trade(trade, ticker)
+
+		return trade
 
 
 	"""
@@ -147,7 +159,7 @@ class DCA:
 	"""
 	def stop(self):
 		self.save()
-		print('Stopped and saved')
+		print('Stopped and saved\n\n')
 		exit()
 	
 
@@ -174,7 +186,6 @@ class DCA:
 		files = sorted(os.listdir('saved_dca/'))
 		if files:
 			print('\nReloading from last saved file: %s\n' % files[-1])
-
 			with open('saved_dca/%s' % files[-1], 'r') as json_file:
 				dca = json.load(json_file)
 		
@@ -184,24 +195,39 @@ class DCA:
 		self.previous_buys = dca['previous_buys']
 		self.simulate = dca['simulate']
 		self.dca_dict = dca['dca_dict']
+		self.exchange_name = dca['exchange_name']
+		self.api = self.exchange_apis[self.exchange_name](self.api_keys)
 
 		# Convert all the saved time strings into datetimes
 		self.start_time = datetime.strptime(dca['start_time'], '%Y-%m-%dT%H:%M:%S.%f')
-
 		self.wakeup_times = [[datetime.strptime(i[0],'%Y-%m-%dT%H:%M:%S.%f'), i[1]] for i in dca['wakeup_times']]
 
-		# Loop over the coins in the dca dict 
+		# Loop over the coins in the dca dict and put in the function for the dca multiplier
 		for coin in self.dca_dict:
-			self.dca_dict[coin]['next_buy'] = datetime.strptime(self.dca_dict[coin]['next_buy'], '%Y-%m-%dT%H:%M:%S.%f')
 			self.dca_dict[coin]['function']['func'] = self.strategies[self.dca_dict[coin]['function']['name']]
 
-		 
-		for wakeup_time, coin in self.wakeup_times:
+		# Loop and get the missed buys
+		for i, (wakeup_time, coin) in enumerate(self.wakeup_times):
 			if datetime.now() > wakeup_time:
 				missed = (datetime.now() - wakeup_time).seconds // self.dca_dict[coin]['frequency']
-				print('\n\nFor coin: %s you missed %d buys' % (coin, missed))
-				input('\n\nWhat do you want to do, rebuy or skip r/s\n\n')
+				print('\n\nFor %s you missed %d buys' % (coin, missed))
+				buy_skip = input('\n\nWhat do you want to do?\nBuy missed trades at current price "1" or skip: "2"\n\n')
+				
+				if buy_skip == '1':
+					buy_vol = missed * self.dca_dict[coin]['amount']
+					# Apply the multiplier if any
+					trade = self.buy(coin, buy_vol)
+					print(trade)
+				else:
+					print('Skipping missed buys')
+			else:
+				print('\n\nFor %s no buys missed' % coin)
 
+			self.wakeup_times[i][0] = datetime.now() + timedelta(seconds=self.dca_dict[coin]['frequency'])
+
+		print('\n\n\n\n\n')
+		print(self.wakeup_times)
+		print('\n\n')
 					
 		self.wakeup_times.sort()
 		self.wakeup_event.set()
@@ -233,43 +259,52 @@ class DCA:
 		t.setDaemon(True)
 		t.start()
 
-		exchange_dict = {'b':{'api':binance_api,'hold':'USDT', 'name':'binance'}, 'f':{'api':ftx_api, 'hold':'USD', 'name':'ftx'}, 'k': {'api':kraken_api, 'hold':'USD','name':'kraken'}}
-		self.current_prompt = '\nChoose exchange: binance/ftx/kraken: b/f/k\n\n'
-		exchange = input(self.current_prompt)
-		if not exchange:
-			exchange = 'b'
-		self.api = exchange_dict[exchange.lower()]['api'](self.api_keys)
-		self.hold_coin = exchange_dict[exchange.lower()]['hold']
-		self.exchange_name = exchange_dict[exchange.lower()]['name']
+		resume = 'n'
+		if len(os.listdir('saved_dca')):
+			self.current_prompt = '\nResume saved dca from: %s ? y/n\n' % (datetime.strptime(sorted(os.listdir('saved_dca/'))[-1][:17], '%y_%m_%d-%H_%M_%S').strftime('%b %d %H:%M:%S'))
+			resume = input(self.current_prompt)
+			
 
-		self.current_prompt = '\nUsing %s as the coin you hold in your %s wallet\nDo you want to change this? y/n\n\n' % (self.hold_coin, self.exchange_name)
-		change = input(self.current_prompt)
-		if not change:
-			change = 'n'
+		if resume != 'y':
 
-		# Change the hold coin here
-		if change.lower() == 'y':
-			self.current_prompt = '\nInput currency/coin wallet used to buy crypto e.g. "USDT" "USD" "GBP"\n\n'
-			self.hold_coin = input(self.current_prompt).upper()
-			if not self.hold_coin:
-				self.hold_coin = 'USDT'
-			# Check that there are trading pairs with this coin and  the crypto you are buying
+			self.current_prompt = '\nChoose exchange: binance/ftx/kraken: b/f/k\n\n'
+			exchange = input(self.current_prompt)
+			if not exchange:
+				exchange = 'b'
+			self.api = self.exchange_dict[exchange.lower()]['api'](self.api_keys)
+			self.hold_coin = self.exchange_dict[exchange.lower()]['hold']
+			self.exchange_name = self.exchange_dict[exchange.lower()]['name']
+
+			self.current_prompt = '\nUsing %s as the coin you hold in your %s wallet\nDo you want to change this? y/n\n\n' % (self.hold_coin, self.exchange_name)
+			change = input(self.current_prompt)
+			if not change:
+				change = 'n'
+
+			# Change the hold coin here
+			if change.lower() == 'y':
+				self.current_prompt = '\nInput currency/coin wallet used to buy crypto e.g. "USDT" "USD" "GBP"\n\n'
+				self.hold_coin = input(self.current_prompt).upper()
+				if not self.hold_coin:
+					self.hold_coin = 'USDT'
+
+				# Check that there are trading pairs with this coin and  the crypto you are buying
 
 		first = True
 
 		try:
 			while 1:
 				try:
-					self.current_prompt = 'Select action:\n\n%snew dca: "1"\nstats: "2"\nsave: "3"\nstop: "4"\n\n' % ('Resume: "0"\n' if first else '')
+					# New strategy
+					if resume == 'y' and first:
+						self.resume()	
+
 					first = False
+					self.current_prompt = 'Select action:\n\nnew dca: "1"\nstats: "2"\nsave: "3"\nstop: "4"\n\n'
 					user_input = input(self.current_prompt)
 					if not user_input:
 						user_input = '1'
 
-					# New strategy
-					if user_input == '0':
-						self.resume()	
-					elif user_input == '1':
+					if user_input == '1':
 						self.current_prompt = '\nInsert coin to buy e.g. "BTC"\n\n'
 						coin = input(self.current_prompt).upper()
 						if not coin:
@@ -298,6 +333,9 @@ class DCA:
 							frequency *= 3600
 						elif frequency_scale.lower() == 'm':
 							frequency *= 60
+
+						self.current_prompt = '\nWhat time do you want to start the buy (00:00 UTC recommended for fear and greed)\nPut in your local time in 24H format e.g. 19:00\n\n'
+						buy_time = input(self.current_prompt)
 
 						self.current_prompt = '\nStrategy: Regular/Fear & Greed r/f\n\n'
 						strategy = input(self.current_prompt)

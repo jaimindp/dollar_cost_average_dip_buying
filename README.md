@@ -65,7 +65,7 @@ Current fear and greed:
 
 ### Updates
 August 27th
-FTX Set up and more intuitive UI. Also more backtesting in the analysis notbook
+FTX Set up and more intuitive UI. Also more backtesting in the analysis notebook
 
 August 12th:
 Fear and greed DCA handling for buy amounts lower than the minimum buy amount for each coin
