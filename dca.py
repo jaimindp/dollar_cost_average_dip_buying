@@ -9,9 +9,9 @@ import sys
 import queue
 from save import *
 from pprint import pprint
-from binance_api import *
-from ftx_api import *
-from kraken_api import *
+from apis.binance_api import *
+from apis.ftx_api import *
+from apis.kraken_api import *
 
 
 """
