@@ -266,9 +266,12 @@ class DCA:
 	Print the stats about the DCAs
 	"""
 	def stats(self):
-			
-		stat_str = '*'
+
+		stat_str = ''
 		print(self.previous_buys)
+		print('\n\n%s DCA Summary %s\n\nNumber of DCAs running: %d\n' % ('-'*20,'-'*20,len(self.previous_buys)))
+
+		# Loop over the previous trades and calculate the average dca buys
 		for coin in self.previous_buys:
 
 			stat_str += coin
@@ -277,9 +280,26 @@ class DCA:
 				tot_spent += trade['cost']
 				tot_bought += trade['amount']
 
-			avg_buy = tot_spent / tot_bought 
-			
-			print('\n%s Total Spent: $%.2f\nTotal Bought %.8f %s\nAvg Buy Price: %.8f' % (coin, tot_spent, tot_bought, coin, avg_buy))
+			if tot_spent > 0:
+				avg_buy = tot_spent / tot_bought 
+
+				spent_str = ('Total Spent', '$%.2f' % (tot_spent))
+				bought_str = ('Total Bought', '%.8f %s' % (tot_bought, coin))
+				avg_str = ('Avg Buy Price', '%.8f' % (avg_buy))
+
+				
+				stat_str += '  %s\n\n' % ('*' * 35)
+				stat_str =  '\n  %s\n                  %s               ' % ('*'*35, coin)
+				stat_str += '\n  * %s:%s *' % (spent_str[0], (' '*(30 - len(spent_str[0]) - len(spent_str[1]))) + spent_str[1])
+				stat_str += '\n  * %s:%s *' % (bought_str[0], (' '*(30 - len(bought_str[0]) - len(bought_str[1]))) + bought_str[1])
+				stat_str += '\n  * %s:%s *' % (avg_str[0], (' '*(30 - len(avg_str[0]) - len(avg_str[1]))) + avg_str[1])
+				stat_str += '\n  %s\n\n' % ('*' * 35)
+
+				#print('\n%s Total Spent: $%.2f\nTotal Bought %.8f %s\nAvg Buy Price: %.8f' % (coin, tot_spent, tot_bought, coin, avg_buy))
+				print(stat_str)
+
+			else:
+				print('\nNo buy for %s\n')
 
 
 	"""
@@ -366,7 +386,7 @@ class DCA:
 
 		resume = 'n'
 		if len(os.listdir('saved_dca')):
-			self.current_prompt = '\nResume saved dca from: %s ? y/n\n' % (datetime.strptime(sorted(os.listdir('saved_dca/'))[-1][:17], '%y_%m_%d-%H_%M_%S').strftime('%b %d %H:%M:%S'))
+			self.current_prompt = '\nResume saved dca from: %s ? y/n\n\n' % (datetime.strptime(sorted(os.listdir('saved_dca/'))[-1][:17], '%y_%m_%d-%H_%M_%S').strftime('%b %d %H:%M:%S'))
 			resume = input(self.current_prompt)
 			
 
