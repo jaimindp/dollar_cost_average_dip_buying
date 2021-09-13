@@ -19,7 +19,7 @@ This repo lets you run and backtest DCA strategies for crypto to minimise risk a
 
 2. Load up your spot wallet with USD or USDT or whatever currency you want to use to buy crypto 
 <br></br>
-3. Create API keys with 'trading' permissions enabled and load 
+3. Create API keys with 'trading' permissions enabled
 <br></br>
 4. Put your API keys in a json file called `keys.json` one directory above the repo (Only the exchange keys used to trade need to be included)
 
@@ -78,5 +78,3 @@ Fear and greed DCA handling for buy amounts lower than the minimum buy amount fo
 
 August 8th:
 Basic DCA works for all cryptos on Binance, needs to be run permanently
-
-
