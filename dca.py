@@ -11,7 +11,7 @@ from save import *
 from pprint import pprint
 from binance_api import *
 from ftx_api import *
-from kraken_api2 import *
+from kraken_api import *
 
 
 """
@@ -62,13 +62,16 @@ class DCA:
 
 				print('\n\n%s Woken up %s %s\n' % ('*'*20, datetime.now().strftime('%b %m %H:%M:%S'), '*'*20))
 				if t < datetime.now():
-					# Execute the buy
-					amount = self.dca_dict[coin]['function']['func'](self.dca_dict[coin]['amount'])
+					try:
+						# Execute the buy
+						amount = self.dca_dict[coin]['function']['func'](self.dca_dict[coin]['amount'])
 
-					print('Buying $%.2f' % (amount))
-					trade = self.buy(coin, amount)	
-					self.previous_buys[coin].append(trade)
-					next_buy = t + timedelta(seconds=self.dca_dict[coin]['frequency'])
+						print('Buying $%.2f' % (amount))
+						trade = self.buy(coin, amount)	
+						self.previous_buys[coin].append(trade)
+						next_buy = t + timedelta(seconds=self.dca_dict[coin]['frequency'])
+					except Exception as e:
+						print('Error buying %s\n%s\n\nContinuing' % (coin, traceback.format_exc()))
 
 				else:
 					# Just add next buy time
@@ -85,13 +88,9 @@ class DCA:
 					sleeptime = 0.1
 
 				print('\n%s  Sleeping for: %.2fs  %s\n\n %s' % ('-'*20, sleeptime, '-'*20, self.current_prompt))
-				"""
-				print('Current DCAs:')
-				self.report()
-				"""
 
 			except Exception as e:
-				print('Error %s' % (traceback.format_exc()))
+				print('Error\n\n %s\n\nContinuing' % (traceback.format_exc()))
 
 
 	"""
@@ -318,8 +317,8 @@ class DCA:
 	Get user inputs to set up a new coin to dca into 
 	"""
 	def new_dca(self):
+		self.current_prompt = '\nInsert coin to buy e.g. "BTC"\n\n'
 		while 1:
-			self.current_prompt = '\nInsert coin to buy e.g. "BTC"\n\n'
 			coin = input(self.current_prompt).upper()
 			if not coin:
 				coin = 'BTC'
@@ -330,22 +329,34 @@ class DCA:
 
 		# Get the average amount to purchase per buy	
 		self.current_prompt = '\nInsert $Amount to buy e.g. "10"\n\n'
-		amount = input(self.current_prompt)
-		if not amount:
-			amount = 10
-		else:
-			amount = float(amount)
-
+		while 1:
+			amount = input(self.current_prompt)
+			if not amount:
+				amount = 10
+				break
+			elif amount.replace('.','').isnumeric():
+				amount = float(amount)
+				break
+			print('\nIncorrect format\n')
+			
 		# Get the frequency of the purchases
-		self.current_prompt = '\nInsert frequency to buy in Weeks/Days/Hours/Minutes/Seconds W/D/H/M/S\n\ne.g. 20S/12H/3D/1W\n\n'
-		freq_str = input(self.current_prompt)
-		if not freq_str:
-			frequency = 10
-			frequency_scale = 's'
-		else:
-			frequency = float(freq_str[:-1])
-			frequency_scale = freq_str[-1]
-
+		self.current_prompt = '\nInsert frequency to buy in Seconds/Minutes/Hours/Days/Weeks S/M/H/D/W\n\ne.g. 20S/12H/3D/1W\n\n'
+		while 1:
+			freq_str = input(self.current_prompt)
+			try:
+				if not freq_str:
+					frequency = 10
+					frequency_scale = 's'
+					break
+				elif freq_str[:-1].isnumeric and freq_str[-1].lower() in ['s','m','h','d','w']:
+					frequency = float(freq_str[:-1])
+					frequency_scale = freq_str[-1]
+					break
+				else:
+					print('\nIncorrect format\n')
+			except Exception as e:
+				print('\nIncorrect format\n')
+				
 		# Convert the user input in to a number of seconds to sleep for 
 		if frequency_scale.lower() == 'w':
 			frequency *= 3600 * 24 * 7
@@ -358,20 +369,29 @@ class DCA:
 
 		# Choose a starting time for the dca
 		self.current_prompt = '\nTime to start the buy (00:01 UTC recommended for fear and greed)\nPut in your local time in 24H format e.g. 19:00 or leave blank for start now\n\n'
-		start_time = input(self.current_prompt)
-		if start_time:
-			hours,minutes = start_time.split(':')
-			start_time = datetime.now().replace(hour=int(hours), minute=int(minutes), second=0)
-			if start_time < datetime.now():
-				start_time += timedelta(days=1)
-		else:
-			start_time = datetime.now()
-		print('Starting buys: %s' % (start_time.strftime('%b %d - %H:%M:%S')))
+		while 1:
+			start_time = input(self.current_prompt)
+			if start_time:
+				try:
+					hours,minutes = start_time.split(':')
+					start_time = datetime.now().replace(hour=int(hours), minute=int(minutes), second=0)
+					if start_time < datetime.now():
+						start_time += timedelta(days=1)
+					break
+				except Exception as e:
+					print('\nIncorrect format\n')
+					
+			else:
+				start_time = datetime.now()
+				break
+		print('Starting buys on: %s' % (start_time.strftime('%b %d - %H:%M:%S')))
 
 		# Choose which strategy
 		self.current_prompt = '\nStrategy: Regular/Fear & Greed r/f\n\n'
 		strategy = input(self.current_prompt)
-		if not strategy:
+		if strategy == 'f':
+			strategy = 'f'
+		else:
 			strategy = 'r'
 		
 		# Start the dca
@@ -393,14 +413,18 @@ class DCA:
 			
 
 		if resume != 'y':
-
-			self.current_prompt = '\nChoose exchange: binance/ftx/kraken: b/f/k\n\n'
-			exchange = input(self.current_prompt)
-			if not exchange:
-				exchange = 'b'
-			self.api = self.exchange_dict[exchange.lower()]['api'](self.api_keys)
-			self.hold_coin = self.exchange_dict[exchange.lower()]['hold']
-			self.exchange_name = self.exchange_dict[exchange.lower()]['name']
+			while 1:
+				self.current_prompt = '\nChoose exchange: binance/ftx/kraken: b/f/k\n\n'
+				exchange = input(self.current_prompt)
+				try:
+					if not exchange:
+						exchange = 'b'
+					self.api = self.exchange_dict[exchange.lower()]['api'](self.api_keys)
+					self.hold_coin = self.exchange_dict[exchange.lower()]['hold']
+					self.exchange_name = self.exchange_dict[exchange.lower()]['name']
+					break
+				except Exception as e:
+					print('\nIncorrect entry\n')
 
 			self.current_prompt = '\nUse %s as the coin you hold in your %s wallet? y/n\n\n' % (self.hold_coin, self.exchange_name)
 			hold_usdt = input(self.current_prompt)
@@ -410,6 +434,7 @@ class DCA:
 			# Change the hold coin here
 			if hold_usdt.lower() == 'n':
 				self.current_prompt = '\nInput currency/coin wallet used to buy crypto e.g. "USDT" "USD" "GBP"\n\n'
+
 				self.hold_coin = input(self.current_prompt).upper()
 				if not self.hold_coin:
 					self.hold_coin = 'USDT'
@@ -438,10 +463,12 @@ class DCA:
 						self.save()
 					elif user_input == '4':
 						self.stop()
+					else:
+						print('\nInvalid response\n')
 						
 				except Exception as e:
 					print('Error in input: %s' % (traceback.format_exc()))
-					exit()
+					self.stop()
 
 		except KeyboardInterrupt:
 			print('\nHandling keyboard interrupt')
