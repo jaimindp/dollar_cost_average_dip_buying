@@ -239,6 +239,7 @@ class DCA:
 		# Loop and get the missed buys
 		for i, (wakeup_time, coin) in enumerate(self.wakeup_times):
 			if datetime.now() > wakeup_time:
+				
 				missed = (datetime.now() - wakeup_time).seconds // self.dca_dict[coin]['frequency'] + 1
 				buy_vol = missed * self.dca_dict[coin]['amount']
 				print('\n\nFor %s %d buys were missed $%.2f (unweighted)' % (coin, missed, buy_vol))
@@ -251,10 +252,10 @@ class DCA:
 					self.previous_buys[coin].append(trade)
 				else:
 					print('\n\n-----Skipping missed buys-----\n\n')
+				self.wakeup_times[i][0] = datetime.now() + timedelta(seconds=(datetime.now()-wakeup_time).seconds % self.dca_dict[coin]['frequency'])
 			else:
 				print('\n\n----No %s buys missed-----\n\n' % coin)
 
-			self.wakeup_times[i][0] = datetime.now() + timedelta(seconds = (datetime.now() - wakeup_time).seconds % self.dca_dict[coin]['frequency'])
 
 		self.current_prompt = '\nSelect action:\n\nnew dca: "1"\nstats: "2"\nsave: "3"\nstop: "4"\n\n'
 		print(self.current_prompt)
