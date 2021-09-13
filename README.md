@@ -65,16 +65,17 @@ Current fear and greed:
 
 ### Updates
 September 13th
-Printing of summary statistics of dca avg buy price and total spent
+- Updated analysis notebook with charts of historical fear and greed performance
+- Printing of summary statistics of dca avg buy price and total spent
 
 September 12th
-Allows for stopping, saving and restarting allowing the user to choose to buy at the current price or skipping instead
+- Allows for stopping, saving and restarting allowing the user to choose to buy at the current price or skipping instead
 
 August 27th
-FTX Set up and more intuitive UI. Also more backtesting in the analysis notebook
+- FTX Set up and more intuitive UI. Also more backtesting in the analysis notebook
 
 August 12th:
-Fear and greed DCA handling for buy amounts lower than the minimum buy amount for each coin
+- Fear and greed DCA handling for buy amounts lower than the minimum buy amount for each coin
 
 August 8th:
-Basic DCA works for all cryptos on Binance, needs to be run permanently
+- Basic DCA works for all cryptos on Binance, needs to be run permanently
