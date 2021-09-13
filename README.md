@@ -64,6 +64,9 @@ Current fear and greed:
 <img src="https://alternative.me/crypto/fear-and-greed-index.png" alt="Latest Crypto Fear & Greed Index" width="350" height="300" class="center"/>
 
 ### Updates
+September 13th
+Printing of summary statistics of dca avg buy price and total spent
+
 September 12th
 Allows for stopping, saving and restarting allowing the user to choose to buy at the current price or skipping instead
 
