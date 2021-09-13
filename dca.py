@@ -11,7 +11,7 @@ from save import *
 from pprint import pprint
 from binance_api import *
 from ftx_api import *
-from kraken_api import *
+from kraken_api2 import *
 
 
 """
@@ -34,7 +34,7 @@ class DCA:
 		self.log = log
 		self.fg_pull = None
 		self.current_prompt = ''
-		self.exchange_apis = {'binance':binance_api, 'ftx':ftx_api, 'api':kraken_api}
+		self.exchange_apis = {'binance':binance_api, 'ftx':ftx_api, 'kraken':kraken_api}
 		self.exchange_dict = {'b':{'api':binance_api,'hold':'USDT', 'name':'binance'}, 'f':{'api':ftx_api, 'hold':'USD', 'name':'ftx'}, 'k': {'api':kraken_api, 'hold':'USD','name':'kraken'}}
 		self.save_keys = ['dca_name','crypto_amounts','hold_coin','previous_buys','simulate','wakeup_times','dca_dict','start_time','log','exchange_name']
 
@@ -241,7 +241,7 @@ class DCA:
 			if datetime.now() > wakeup_time:
 				
 				missed = (datetime.now() - wakeup_time).seconds // self.dca_dict[coin]['frequency'] + 1
-				buy_vol = missed * self.dca_dict[coin]['amount']
+				buy_vol = self.dca_dict[coin]['function']['func'](missed * self.dca_dict[coin]['amount'])
 				print('\n\nFor %s %d buys were missed $%.2f (unweighted)' % (coin, missed, buy_vol))
 				buy_skip = input('\n\nBuy missed trades at current price "1" or skip: "2"\n\n')
 				
@@ -269,7 +269,6 @@ class DCA:
 	def stats(self):
 
 		stat_str = ''
-		print(self.previous_buys)
 		print('\n\n%s DCA Summary %s\n\nNumber of DCAs running: %d\n' % ('-'*20,'-'*20,len(self.previous_buys)))
 
 		# Loop over the previous trades and calculate the average dca buys
@@ -284,6 +283,7 @@ class DCA:
 			if tot_spent > 0:
 				avg_buy = tot_spent / tot_bought 
 
+				strategy_str = ('Strategy', self.strategies[self.dca_dict[coin]['function']['name']]['name'])
 				spent_str = ('Total Spent', '$%.2f' % (tot_spent))
 				bought_str = ('Total Bought', '%.8f %s' % (tot_bought, coin))
 				avg_str = ('Avg Buy Price', '%.8f' % (avg_buy))
@@ -291,6 +291,7 @@ class DCA:
 				
 				stat_str += '  %s\n\n' % ('*' * 35)
 				stat_str =  '\n  %s\n                  %s               ' % ('*'*35, coin)
+				stat_str += '\n  * %s:%s *' % (strategy_str[0], (' '*(30 - len(strategy_str[0]) - len(strategy_str[1]))) + strategy_str[1])
 				stat_str += '\n  * %s:%s *' % (spent_str[0], (' '*(30 - len(spent_str[0]) - len(spent_str[1]))) + spent_str[1])
 				stat_str += '\n  * %s:%s *' % (bought_str[0], (' '*(30 - len(bought_str[0]) - len(bought_str[1]))) + bought_str[1])
 				stat_str += '\n  * %s:%s *' % (avg_str[0], (' '*(30 - len(avg_str[0]) - len(avg_str[1]))) + avg_str[1])

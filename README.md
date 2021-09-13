@@ -14,7 +14,7 @@ This repo lets you run and backtest DCA strategies for crypto to minimise risk a
 
     - [x] [binance.com](https://accounts.binance.com/en/register?ref=CP1DAOWU)
     - [x] [ftx.com](https://ftx.com/#a=33799830)
-    - [ ] [kraken.com](https://r.kraken.com/KeJqje)
+    - [x] [kraken.com](https://r.kraken.com/KeJqje)
 
 
 2. Load up your spot wallet with USD or USDT or whatever currency you want to use to buy crypto 

@@ -1,187 +1,106 @@
 import ccxt
 import time
-from datetime import datetime
+from datetime import datetime, timedelta
 import json
+import traceback
 import os
 import sys
+
 
 # Executes buying and selling
 class kraken_api:
 
 	# Initialize
-	def __init__(self, api_keys, logfile=False):
+	def __init__(self, api_keys):
 		self.api_keys = {'api_key':api_keys['kraken_keys']['api_key'],'secret_key':api_keys['kraken_keys']['secret_key']}
 		self.exchange = ccxt.kraken({'apiKey':self.api_keys['api_key'], 'secret':self.api_keys['secret_key']})
-		self.logfile = logfile
-	
-	# Buying of real cryto
-	def buy_crypto(self, ticker, buy_volume):
+		self.markets = {}
+		self.get_markets()
+
+
+	# Get markets
+	def get_markets(self):
+
+		for market in self.exchange.fetch_markets():
+			self.markets[market['symbol']] = market 
+
+	# Buy 
+	def buy(self, ticker, buy_volume):
+
+		price = self.exchange.fetch_ticker(ticker)['ask']
+		buy_volume /= price
+		step_size = 10**(-self.markets[ticker]['precision']['amount'])
+		buy_volume = round(buy_volume*1/step_size) * step_size
+		min_buy_amount = float(self.markets[ticker]['limits']['amount']['min'])
+
+		# Check if the buy volume is the minimum amount for this exchange
+		if buy_volume < min_buy_amount:
+			if buy_volume < 0.5*min_buy_amount:
+				print('Buy amount %.6f lower than half the mininmum trade amount for %s, not trading' % (buy_volume, ticker))
+				return
+			buy_volume = min_buy_amount
+			print('Buy amount lower than minimum trade amount for %s, buying min volume %.6f' % (ticker, buy_volume))
+
+
+		print('Buying %.6f %s'% (buy_volume, ticker))
+		buy_trade = self.exchange.create_order(ticker,'market','buy',buy_volume)
+		self.retrieve_order_fees(buy_trade)
+		print('Bought: %.6f %s at $%.8f' % (buy_trade['cost'], ticker.split('/')[1], buy_trade['price']))
 		
-		# Try creating the buy order
-		bought = False
-		for _ in range(10):	
-			try:
-				buy_trade = self.exchange.create_order(ticker,'market','buy',buy_volume)
-				print('\nBought')
-				bought = True
-				break
-			except Exception as e:
-				print(e)
-				print('\nDid not buy correctly, trying again')
+		return buy_trade
 
-		print('\nBought %.8f at %s' % (buy_volume, datetime.now().strftime('%b %d - %H:%M:%S')))
 
-		return buy_trade, buy_volume, bought
+	# Get the fees for a trade
+	def retrieve_order_fees(self, trade):
 
-	# Selling of real crypto
-	def sell_crypto(self, ticker, sell_volume):
+		try:
+			count = 0
+			fetched_trade = trade
+			while (fetched_trade['status'] is None or fetched_trade['status'] == 'open') and count < 5:
+				fetched_trade = self.exchange.fetch_order(trade['id'], trade['symbol'])
+				trade['cost'] = fetched_trade['cost']
+				trade['fees'] = fetched_trade['fees']
+				trade['price'] = fetched_trade['price']
+				trade['amount'] = fetched_trade['amount']
+				count += 1
 
-		# Try to sell 10 times
-		for i in range(10):
-			try:
-				sell_trade = self.exchange.create_order(ticker,'market','sell',sell_volume)
-				print('\nSold')
-				break
+			# Get the fee from trades
+			if trade['fee'] is None:
+				trades = self.exchange.fetch_my_trades(trade['symbol'], since=int((datetime.now()-timedelta(seconds=10)).timestamp() * 1000))
 
-			except Exception as e:
-				print(e)
-				print('\n\nTrying to sell %.10f again' % buy_volume)
-		
-		# Print sell
-		print('\nSold %.8f at %s' % (sell_volume, datetime.now().strftime('%b %d - %H:%M:%S')))
+				# Loop over from fetch_my_trades to get the fee and timestamp information
+				if trades:
+					fees = None
+					if trades[-1]['fee'] is not None:
+						fees = {'cost':0, 'currency':trades[-1]['fee']['currency']}
 
-		return sell_trade
+						# Loop backwards over the trades found
+						for individual_trade in trades[::-1]:
+							if individual_trade['order'] == trade['id']:
+								fees['cost'] += individual_trade['fee']['cost']
+							else:
+								break
+						print('Get trades for %s since fees were not present cost: %s  currency: %s' % (trade['symbol'], fees['cost'], fees['currency']))
+
+					trade['fee'] = fees
+
+					# Changing the timestamp to the last trade timestamp
+					if trade['timestamp'] is None:
+						trade['timestamp'] = trades[-1]['timestamp']
+
+			return trade
+			
+		except Exception as e:
+			print('Error: fetching trade - %s' % (traceback.format_exc()))
+
 
 	# Get data from self.exchange and print it 
-	def simulate_trade(self, buy, volume, ticker, conversion):
-		if conversion[-4:] in ['USDT', 'USD']:
-			usdpair = {'bid':1,'ask':1}
-		else:
-			usdpair = self.exchange.fetchTicker(conversion)
-		if buy:
-			bid_ask, buy_sell = 'ask', 'Buying'
-		else:
-			bid_ask, buy_sell = 'bid', 'Selling'
-		try:
-			trade_price = self.exchange.fetchTicker(ticker)[bid_ask]
-			price = (usdpair['bid']+usdpair['ask'])/2
-			print('\n{} {} at {:.8f} {} = {:.6f}$'.format(buy_sell, volume, trade_price, ticker, trade_price * volume * price))
+	def simulate_buy(self, ticker, buy_volume):
 
-		except Exception as e:
-			print (e, '\nError in fetching ticker info')
-		trade = {'symbol': ticker,'side':'buy' if buy else 'sell', 'amount':volume, 'cost':trade_price * volume}
+		trade_price = self.exchange.fetch_ticker(ticker)['ask']
+
+		print('\nSimulated Buy: ${} at {:.8f} {} = {:.6f}{}'.format(buy_volume, trade_price, ticker, buy_volume/trade_price, ticker.split('/')[0]))
+		trade = {'symbol':ticker ,'side':'buy', 'amount':buy_volume / trade_price, 'cost':buy_volume, 'price':trade_price}
 		
 		return trade
 
-
-	# Summarise trade buy and sell
-	def print_summary(self, simulate, ticker, buy_trade, sell_trades, conversion):
-		
-		if not simulate:
-			buy_id, sell_ids = buy_trade['id'], [i['id'] for i in sell_trades]
-			buy_prices, sell_prices = [], []
-			for i in range(20):
-				try:
-					trades = self.exchange.fetch_my_trades(ticker)
-					break
-				except Exception as e:
-					print(e)
-					print("Couldn't fetch trades, tying again")
-					
-			# Loop over trades as one order could have had multiple fills
-			for trade in trades[::-1]:
-				if buy_id == trade['order']:
-					buy_prices.append({'amount':trade['amount'],'cost':trade['cost'],'fee':trade['fee']})
-				elif trade['order'] in sell_ids:
-					sell_prices.append({'amount':trade['amount'],'cost':trade['cost'],'fee':trade['fee']}) # Actual return uses fills
-
-			buy_fee = sum([x['fee']['cost'] for x in buy_prices])
-			sell_fee = sum([x['fee']['cost'] for x in sell_prices])        
-
-			# Log fees
-			for i in range(20):
-				try:
-					if buy_prices[0]['fee']['currency'] in ['USDT', 'USD']:
-						buy_fee_dollar = buy_fee
-						sell_fee_dollar = sell_fee
-					else:
-						buy_crypto_dollar = self.exchange.fetch_ticker(buy_prices[0]['fee']['currency']+'/USDT')
-						sell_crypto_dollar = self.exchange.fetch_ticker(sell_prices[0]['fee']['currency']+'/USDT')
-						buy_fee_price = (buy_crypto_dollar['bid']+buy_crypto_dollar['ask'])/2
-						sell_fee_price = (sell_crypto_dollar['bid']+sell_crypto_dollar['ask'])/2
-						
-						buy_fee_dollar = buy_fee_price * buy_fee
-						sell_fee_dollar = sell_fee_price * sell_fee
-
-					ticker_pair = ticker.split('/')
-					if ticker_pair[1] in ['USDT', 'USD']:
-						ticker_info = {'bid':1,'ask':1}
-					else:
-						ticker_info = self.exchange.fetch_ticker(ticker_pair[1]+'/'+'USDT')
-				except Exception as e:
-					print(e)
-					print('\nError in printing executed trades')
-		else:
-			sell_prices, buy_prices = sell_trades, [buy_trade]
-			sell_fee_dollar, buy_fee_dollar = 0, 0
-			if ticker[-4:] in ['USDT', 'USD']:
-				ticker_info = {'bid':1, 'ask':1}
-			else:
-				ticker_info = self.exchange.fetch_ticker(ticker.split('/')[1]+'/'+'USDT')
-
-		print('\nGain/Loss: $%.6f' % ((sum([i['cost'] for i in sell_prices]) - sum(i['cost'] for i in buy_prices)) * (ticker_info['bid'] + ticker_info['ask'])\
-			  / 2 - sell_fee_dollar - buy_fee_dollar))
-
-
-	# Execute trade
-	def execute_trade(self, pair, hold_time=60, buy_volume=50, simulate=False):
-
-		# Ticker and convesion to USD strings for Kraken
-		ticker = pair[0]+'/'+pair[1]
-		tousd1 = pair[0]+'/USDT'
-		tousd2 = pair[1]+'/USDT'
-
-		# Buy order
-		if not simulate:
-			bought = False
-			try:
-				buy_trade, buy_volume, bought = self.buy_crypto(ticker, buy_volume)
-			except Exception as e:
-				print(e)
-			if not bought:
-				print('Exiting')
-				exit()
-		else:
-			buy_trade = self.simulate_trade(True, buy_volume, ticker, tousd2)
-
-
-		# Sell in multiple stages based on hold_time
-		sell_volume = buy_volume / len(hold_time)
-		prev_sell_time = 0
-		sell_trades = []
-		for hold in hold_time:
-			time.sleep(hold - prev_sell_time)
-			prev_sell_time = hold
-
-			# Sell order
-			if not simulate:
-				sell_trades.append(self.sell_crypto(ticker, sell_volume))
-			else:
-				sell_trades.append(self.simulate_trade(False, sell_volume, ticker, tousd2))
-
-		print('\n\nTRADING FINISHED\n')
-
-		# Print summary 
-		try:
-			self.print_summary(simulate, ticker, buy_trade, sell_trades, tousd2)
-		except Exception as e:
-			print('\nFailed to print summary\n')
-			print(e)
-
-		# Log trade
-		if self.logfile:
-			now = datetime.now().strftime("%y-%m-%d_%H:%M:%S")
-			if 'prev_trades' not in os.listdir():
-				os.mkdir('prev_trades')
-			with open("prev_trades/trades_%s_kraken_%s.txt" % (now,'simulation' if simulate else 'live'), "w") as log_name:
-				json.dump({'time':now,'buy':buy_trade,'sell':sell_trades}, log_name)
