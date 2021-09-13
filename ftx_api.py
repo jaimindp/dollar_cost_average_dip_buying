@@ -100,7 +100,7 @@ class ftx_api:
 
 		trade_price = self.exchange.fetch_ticker(ticker)['ask']
 		print('\n{} at {:.8f} {} = {:.6f}{}'.format(buy_volume, trade_price, ticker, buy_volume/trade_price, ticker.split('/')[0]))
-		trade = {'symbol':ticker ,'side':'buy', 'amount':buy_volume, 'cost':trade_price * buy_volume}
+		trade = {'symbol':ticker ,'side':'buy', 'cost':buy_volume, 'amount':trade_price * buy_volume}
 		
 		return trade
 

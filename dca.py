@@ -56,7 +56,7 @@ class DCA:
 				t, coin = self.wakeup_times.pop(0)
 
 				# Clear the previous input prompt text and bring it to the bottom
-				for i in range(self.current_prompt.count('\n') + 1):
+				for i in range(self.current_prompt.count('\n')):
 					sys.stdout.write('\x1b[1A')
 					sys.stdout.write('\x1b[2K')
 
@@ -66,7 +66,8 @@ class DCA:
 					amount = self.dca_dict[coin]['function']['func'](self.dca_dict[coin]['amount'])
 
 					print('Buying $%.2f' % (amount))
-					self.buy(coin, amount)	
+					trade = self.buy(coin, amount)	
+					self.previous_buys[coin].append(trade)
 					next_buy = datetime.now() + timedelta(seconds=self.dca_dict[coin]['frequency'])
 
 				else:
@@ -94,7 +95,7 @@ class DCA:
 
 
 	"""
-	Start a dca 
+	Start a dca and print the parameters
 	"""
 	def add_dca(self, coin, amount, frequency, start_time, strategy, freq_str):
 
@@ -103,26 +104,24 @@ class DCA:
 		else:
 			self.dca_dict[coin] = {'amount':amount, 'frequency':frequency, 'function':{'name':strategy, 'func':self.strategies[strategy]['func']}}
 			
-
 			# Print out the strategy
-			head_str = 'DCA Params'
 			coin_str = ('Coin', coin)
 			amount_str = ('Buy Amount', '$%.2f' % amount)
 			freq_str = ('Frequency', freq_str)
-			strategy_str = ('Strategy', strategy) 
+			strategy_str = ('Strategy', self.strategies[strategy]['name']) 
 			start_str = ('Start Time', start_time.strftime('%b %d - %H:%M:%S'))
-
 			dca_str = '  %s\n  *            DCA PARAMS           *' % ('*'*35)
 			dca_str += '\n  * %s:%s *' % (coin_str[0], (' '*(30 - len(coin_str[0]) - len(coin_str[1]))) + coin_str[1])
 			dca_str += '\n  * %s:%s *' % (amount_str[0], (' '*(30 - len(amount_str[0]) - len(amount_str[1]))) + amount_str[1])
 			dca_str += '\n  * %s:%s *' % (freq_str[0], (' '*(30 - len(freq_str[0]) - len(freq_str[1]))) + freq_str[1])
 			dca_str += '\n  * %s:%s *' % (strategy_str[0], (' '*(30 - len(strategy_str[0]) - len(strategy_str[1]))) + strategy_str[1])
 			dca_str += '\n  * %s:%s *' % (start_str[0], (' '*(30 - len(start_str[0]) - len(start_str[1]))) + start_str[1])
-
 			dca_str += '\n  %s\n\n' % ('*' * 35)
 			print(dca_str)
 
+			self.previous_buys[coin] = []
 
+			# Put the start time in the wakeup_queue and wakeup the event
 			self.wakeup_times.append([start_time, coin])
 			self.wakeup_times.sort()
 			self.wakeup_event.set()
@@ -224,7 +223,7 @@ class DCA:
 		self.hold_coin = dca['hold_coin']
 		self.previous_buys = dca['previous_buys']
 		if self.simulate != dca['simulate']:
-			self.simulate = False if input('\n\nSimulate or not? y/n') == 'n' else True
+			self.simulate = False if input('\n\nSimulate or not? y/n\n\n') == 'n' else True
 		self.dca_dict = dca['dca_dict']
 		self.exchange_name = dca['exchange_name']
 		self.api = self.exchange_apis[self.exchange_name](self.api_keys)
@@ -249,6 +248,7 @@ class DCA:
 					# TOEDIT # 
 					# Apply the multiplier if any
 					trade = self.buy(coin, buy_vol)
+					self.previous_buys[coin].append(trade)
 				else:
 					print('\n\n-----Skipping missed buys-----\n\n')
 			else:
@@ -266,9 +266,20 @@ class DCA:
 	Print the stats about the DCAs
 	"""
 	def stats(self):
-		# Amount invested
-		# Avg buy price
-		print('Stats about the dcas running')
+			
+		stat_str = '*'
+		print(self.previous_buys)
+		for coin in self.previous_buys:
+
+			stat_str += coin
+			tot_spent, tot_bought = 0, 0
+			for trade in self.previous_buys[coin]:
+				tot_spent += trade['cost']
+				tot_bought += trade['amount']
+
+			avg_buy = tot_spent / tot_bought 
+			
+			print('\n%s Total Spent: $%.2f\nTotal Bought %.8f %s\nAvg Buy Price: %.8f' % (coin, tot_spent, tot_bought, coin, avg_buy))
 
 
 	"""
@@ -328,7 +339,7 @@ class DCA:
 		start_time = input(self.current_prompt)
 		if start_time:
 			hours,minutes = start_time.split(':')
-			start_time = datetime.now().replace(hour=int(hours), minutes=int(minutes))
+			start_time = datetime.now().replace(hour=int(hours), minute=int(minutes), second=0)
 			if start_time < datetime.now():
 				start_time += timedelta(days=1)
 		else:
@@ -343,7 +354,6 @@ class DCA:
 		
 		# Start the dca
 		self.add_dca(coin, amount, frequency, start_time, strategy, freq_str)
-						
 
 
 	"""
