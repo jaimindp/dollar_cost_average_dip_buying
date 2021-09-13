@@ -74,7 +74,7 @@ class DCA:
 					# Just add next buy time
 					next_buy = t
 
-				print('\nNext buy of %s %s' % (coin, next_buy.strftime('%b %d %H:%M:%S')))
+				print('\nNext buy of %s: %s' % (coin, next_buy.strftime('%b %d %H:%M:%S')))
 				self.wakeup_times.append([next_buy, coin])
 
 				self.wakeup_times.sort()
@@ -100,9 +100,9 @@ class DCA:
 	def add_dca(self, coin, amount, frequency, start_time, strategy, freq_str):
 
 		if coin in self.dca_dict:
-			print('%s already executing dca with this coin' % (coin))
+			print('%s Already executing dca with this coin' % (coin))
 		else:
-			self.dca_dict[coin] = {'amount':amount, 'frequency':frequency, 'function':{'name':strategy, 'func':self.strategies[strategy]['func']}}
+			self.dca_dict[coin] = {'amount':amount, 'frequency':frequency, 'start_time':start_time, 'function':{'name':strategy, 'func':self.strategies[strategy]['func']}}
 			
 			# Print out the strategy
 			coin_str = ('Coin', coin)
@@ -252,7 +252,9 @@ class DCA:
 					self.previous_buys[coin].append(trade)
 				else:
 					print('\n\n-----Skipping missed buys-----\n\n')
-				self.wakeup_times[i][0] = datetime.now() + timedelta(seconds=(datetime.now()-wakeup_time).seconds % self.dca_dict[coin]['frequency'])
+				start_time = datetime.strptime(self.dca_dict[coin]['start_time'], '%Y-%m-%dT%H:%M:%S.%f')
+				self.wakeup_times[i][0] = datetime.now() + timedelta(seconds=(datetime.now() - start_time).seconds % self.dca_dict[coin]['frequency'])
+				#self.wakeup_times[i][0] = datetime.now() + timedelta(seconds=(datetime.now()-wakeup_time).seconds % self.dca_dict[coin]['frequency'])
 			else:
 				print('\n\n----No %s buys missed-----\n\n' % coin)
 
@@ -364,7 +366,7 @@ class DCA:
 			if start_time < datetime.now():
 				start_time += timedelta(days=1)
 		else:
-			start_time = datetime.now()
+			start_time = datetime.now().replace(second=0)
 		print('Starting buys: %s' % (start_time.strftime('%b %d - %H:%M:%S')))
 
 		# Choose which strategy
