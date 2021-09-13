@@ -60,7 +60,7 @@ class DCA:
 					sys.stdout.write('\x1b[1A')
 					sys.stdout.write('\x1b[2K')
 
-				print('\n\n%s Woken up %s\n' % ('*'*28, '*'*28))
+				print('\n\n%s Woken up %s %s\n' % ('*'*20, datetime.now().strftime('%b %m %H:%M:%S'), '*'*20))
 				if t < datetime.now():
 					# Execute the buy
 					amount = self.dca_dict[coin]['function']['func'](self.dca_dict[coin]['amount'])
@@ -68,7 +68,7 @@ class DCA:
 					print('Buying $%.2f' % (amount))
 					trade = self.buy(coin, amount)	
 					self.previous_buys[coin].append(trade)
-					next_buy = datetime.now() + timedelta(seconds=self.dca_dict[coin]['frequency'])
+					next_buy = t + timedelta(seconds=self.dca_dict[coin]['frequency'])
 
 				else:
 					# Just add next buy time
@@ -204,7 +204,7 @@ class DCA:
 			with open('saved_dca/%s_%s.json' % (datetime.now().strftime('%y_%m_%d-%H_%M_%S'), 'sim' if self.simulate else 'live'), 'w') as json_file:
 				json.dump(save_obj(save_dict), json_file)
 		else:
-			print('No DCAs runnint to be saved')
+			print('No DCAs running to be saved')
 	
 
 	"""
@@ -253,11 +253,9 @@ class DCA:
 				else:
 					print('\n\n-----Skipping missed buys-----\n\n')
 				start_time = datetime.strptime(self.dca_dict[coin]['start_time'], '%Y-%m-%dT%H:%M:%S.%f')
-				self.wakeup_times[i][0] = datetime.now() + timedelta(seconds=(datetime.now() - start_time).seconds % self.dca_dict[coin]['frequency'])
-				#self.wakeup_times[i][0] = datetime.now() + timedelta(seconds=(datetime.now()-wakeup_time).seconds % self.dca_dict[coin]['frequency'])
+				self.wakeup_times[i][0] = datetime.now() + timedelta(seconds=self.dca_dict[coin]['frequency'] - (datetime.now() - start_time).total_seconds() % self.dca_dict[coin]['frequency'])
 			else:
 				print('\n\n----No %s buys missed-----\n\n' % coin)
-
 
 		self.current_prompt = '\nSelect action:\n\nnew dca: "1"\nstats: "2"\nsave: "3"\nstop: "4"\n\n'
 		print(self.current_prompt)
@@ -302,7 +300,7 @@ class DCA:
 				print(stat_str)
 
 			else:
-				print('\nNo buy for %s\n')
+				print('\nNo buys for %s\n' % coin)
 
 
 	"""
@@ -366,7 +364,7 @@ class DCA:
 			if start_time < datetime.now():
 				start_time += timedelta(days=1)
 		else:
-			start_time = datetime.now().replace(second=0)
+			start_time = datetime.now()
 		print('Starting buys: %s' % (start_time.strftime('%b %d - %H:%M:%S')))
 
 		# Choose which strategy
