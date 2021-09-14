@@ -1,7 +1,7 @@
 # Dollar Cost Averaging - Custom DCA (buy the dip)
 
 
-### Overview
+# Overview
 Dollar Cost Averaging - DCA: Dividing a sum of money to invest periodically, reducing the impact of volatility on the purchase price. DCA is the commonly accepted risk mitigating way to invest in crypto. But can we do better?
 
 **Buy the dip** - I'm sure you've heard it before but it's much easier said than done. The indicators in this repo are provided to help buy the dip algorithmically: Weighting the buy amount per order to invest more when it's likely crypto is in a dip and less when it is not.
