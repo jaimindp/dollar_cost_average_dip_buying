@@ -200,6 +200,8 @@ class DCA:
 
 		# Manage dcas
 		if self.wakeup_times:
+			if 'saved_dca' not in os.listdir():
+				os.mkdir('saved_dca')
 			with open('saved_dca/%s_%s.json' % (datetime.now().strftime('%y_%m_%d-%H_%M_%S'), 'sim' if self.simulate else 'live'), 'w') as json_file:
 				json.dump(save_obj(save_dict), json_file)
 		else:
@@ -211,6 +213,8 @@ class DCA:
 	"""
 	def resume(self):
 
+		if 'saved_dca' not in os.listdir():
+			os.mkdir('saved_dca')
 		files = sorted(os.listdir('saved_dca/'))
 		if files:
 			print('\nReloading from last saved file: %s\n' % files[-1])
@@ -407,6 +411,8 @@ class DCA:
 		t.start()
 
 		resume = 'n'
+		if 'saved_dca' not in os.listdir():
+			os.mkdir('saved_dca')
 		if len(os.listdir('saved_dca')):
 			self.current_prompt = '\nResume saved dca from: %s ? y/n\n\n' % (datetime.strptime(sorted(os.listdir('saved_dca/'))[-1][:17], '%y_%m_%d-%H_%M_%S').strftime('%b %d %H:%M:%S'))
 			resume = input(self.current_prompt)
