@@ -34,7 +34,7 @@ This repo lets you run and backtest DCA strategies for crypto to minimise risk a
         "secret_key":"XXXXXXXXXXXXXXXXXXXX"
     },
     "kraken_keys":{
-    	"api_key":"XXXXXXXXXXXXXXXXXXXX",
+        "api_key":"XXXXXXXXXXXXXXXXXXXX",
         "secret_key":"XXXXXXXXXXXXXXXXXXXX"
     }
 }
