@@ -69,9 +69,9 @@ class DCA:
 						print('Buying $%.2f' % (amount))
 						trade = self.buy(coin, amount)	
 						self.previous_buys[coin].append(trade)
-						next_buy = t + timedelta(seconds=self.dca_dict[coin]['frequency'])
 					except Exception as e:
 						print('Error buying %s\n%s\n\nContinuing' % (coin, traceback.format_exc()))
+					next_buy = t + timedelta(seconds=self.dca_dict[coin]['frequency'])
 
 				else:
 					# Just add next buy time
@@ -352,7 +352,7 @@ class DCA:
 					frequency = 10
 					frequency_scale = 's'
 					break
-				elif freq_str[:-1].isnumeric and freq_str[-1].lower() in ['s','m','h','d','w']:
+				elif freq_str[:-1].isnumeric() and freq_str[-1].lower() in ['s','m','h','d','w']:
 					frequency = float(freq_str[:-1])
 					frequency_scale = freq_str[-1]
 					break
