@@ -280,8 +280,11 @@ class DCA:
 			stat_str += coin
 			tot_spent, tot_bought = 0, 0
 			for trade in self.previous_buys[coin]:
-				tot_spent += trade['cost']
-				tot_bought += trade['amount']
+				try:
+					tot_spent += trade['cost']
+					tot_bought += trade['amount']
+				except Exception as e:
+					print('Error: %s' % e)
 
 			if tot_spent > 0:
 				avg_buy = tot_spent / tot_bought 
