@@ -43,7 +43,7 @@ class ftx_api:
 
 		print('Buying %.6f %s'% (buy_volume, ticker))
 		buy_trade = self.exchange.create_order(ticker,'market','buy',buy_volume)
-		self.retrieve_order_fees(buy_trade)
+		buy_trade = self.retrieve_order_fees(buy_trade)
 		print(buy_trade)
 		print('Bought: %.6f %s at $%.8f' % (buy_trade['cost'], ticker.split('/')[1], buy_trade['price']))
 		
