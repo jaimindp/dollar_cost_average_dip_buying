@@ -12,6 +12,8 @@ from pprint import pprint
 from apis.binance_api import *
 from apis.ftx_api import *
 from apis.kraken_api import *
+from apis.kucoin_api import *
+from apis.mexc_api import *
 
 
 """
@@ -34,8 +36,8 @@ class DCA:
 		self.log = log
 		self.fg_pull = None
 		self.current_prompt = ''
-		self.exchange_apis = {'binance':binance_api, 'ftx':ftx_api, 'kraken':kraken_api}
-		self.exchange_dict = {'b':{'api':binance_api,'hold':'USDT', 'name':'binance'}, 'f':{'api':ftx_api, 'hold':'USD', 'name':'ftx'}, 'k': {'api':kraken_api, 'hold':'USD','name':'kraken'}}
+		self.exchange_apis = {'binance':binance_api, 'ftx':ftx_api, 'kraken':kraken_api, 'kucoin':kucoin_api, 'mexc':mexc_api }
+		self.exchange_dict = {'b':{'api':binance_api,'hold':'USDT', 'name':'binance'}, 'f':{'api':ftx_api, 'hold':'USD', 'name':'ftx'}, 'kr': {'api':kraken_api, 'hold':'USD','name':'kraken'}, 'ku': {'api':kucoin_api, 'hold':'USDT','name':'kucoin'}, 'm': {'api':mexc_api, 'hold':'USDT','name':'mexc'}}
 		self.save_keys = ['dca_name','crypto_amounts','hold_coin','previous_buys','simulate','wakeup_times','dca_dict','start_time','log','exchange_name']
 
 		with open('../keys.json', 'r') as json_file:
