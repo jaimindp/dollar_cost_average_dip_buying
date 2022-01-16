@@ -12,7 +12,7 @@ class kucoin_api:
 
 	# Initialize
 	def __init__(self, api_keys):
-		self.api_keys = {'api_key':api_keys['kucoin_keys']['api_key'],'secret_key':api_keys['kucoin_keys']['secret_key']}
+		self.api_keys = {'api_key':api_keys['kucoin_keys']['api_key'],'secret_key':api_keys['kucoin_keys']['secret_key'], 'password':api_keys['kucoin_keys']['password']}
 		self.exchange = ccxt.kucoin({'apiKey':self.api_keys['api_key'], 'secret':self.api_keys['secret_key'], 'password': self.api_keys['password']})
 		self.markets = {}
 		self.get_markets()

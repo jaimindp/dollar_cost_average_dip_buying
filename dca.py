@@ -425,7 +425,7 @@ class DCA:
 
 		if resume != 'y':
 			while 1:
-				self.current_prompt = '\nChoose exchange: binance/ftx/kraken: b/f/k\n\n'
+				self.current_prompt = '\nChoose exchange: binance/ftx/kraken/kucoin/mexc: b/f/kr/ku/m\n\n'
 				exchange = input(self.current_prompt)
 				try:
 					if not exchange:
@@ -435,6 +435,7 @@ class DCA:
 					self.exchange_name = self.exchange_dict[exchange.lower()]['name']
 					break
 				except Exception as e:
+					print(traceback.format_exc())
 					print('\nIncorrect entry\n')
 
 			self.current_prompt = '\nUse %s as the coin you hold in your %s wallet? y/n\n\n' % (self.hold_coin, self.exchange_name)
