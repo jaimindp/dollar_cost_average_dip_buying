@@ -31,7 +31,9 @@ class mexc_api:
 		buy_volume /= price
 		step_size = 10**(-self.markets[ticker]['precision']['amount'])
 		buy_volume = round(buy_volume*1/step_size) * step_size
-		min_buy_amount = float(self.markets[ticker]['limits']['amount']['min'])
+		"""
+		#print(self.markets[ticker]['limits']['amount']['min'])
+		#min_buy_amount = float(self.markets[ticker]['limits']['amount']['min'])
 
 		# Check if the buy volume is the minimum amount for this exchange
 		if buy_volume < min_buy_amount:
@@ -40,10 +42,12 @@ class mexc_api:
 				return
 			buy_volume = min_buy_amount
 			print('Buy amount lower than minimum trade amount for %s, buying min volume %.6f' % (ticker, buy_volume))
+		"""
 
 
 		print('Buying %.6f %s'% (buy_volume, ticker))
-		buy_trade = self.exchange.create_order(ticker,'market','buy',buy_volume)
+		#buy_trade = self.exchange.create_swap_order(ticker,'market',1,buy_volume,price=43500,params={'openType':1})
+		buy_trade = self.exchange.create_order(ticker,'market',1,buy_volume,price=43500,params={'openType':1})
 		buy_trade = self.retrieve_order_fees(buy_trade)
 		print('Bought: %.6f %s at $%.8f' % (buy_trade['cost'], ticker.split('/')[1], buy_trade['price']))
 		
