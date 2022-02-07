@@ -47,7 +47,7 @@ class mexc_api:
 
 		print('Buying %.6f %s'% (buy_volume, ticker))
 		#buy_trade = self.exchange.create_swap_order(ticker,'market',1,buy_volume,price=43500,params={'openType':1})
-		buy_trade = self.exchange.create_order(ticker,'market',1,buy_volume,price=43500,params={'openType':1})
+		buy_trade = self.exchange.create_order(ticker,'IMMEDIATE_OR_CANCEL','buy',buy_volume,price)
 		buy_trade = self.retrieve_order_fees(buy_trade)
 		print('Bought: %.6f %s at $%.8f' % (buy_trade['cost'], ticker.split('/')[1], buy_trade['price']))
 		

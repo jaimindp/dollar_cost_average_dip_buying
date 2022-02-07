@@ -158,7 +158,7 @@ class DCA:
 		# Check when it was last pulled
 		now = datetime.now()
 		try:
-			if self.fg_pull is None or (self.fg_pull.date() < now.date() and now.hour >= 1) or (self.fg_pull.date() == now.date() and self.fg_pull.hour < 1 and now.hour >= 1):
+			if self.fg_pull is None or (self.fg_pull.date() < now.date() and now.hour >= 0) or (self.fg_pull.date() == now.date() and self.fg_pull.hour == 0 and now.hour > 1):
 				fg_dict = requests.get('https://api.alternative.me/fng/?format=json&date_format=uk').json()		
 				self.fear_greed_value = int(fg_dict['data'][0]['value'])
 				self.fg_pull = datetime.now()
